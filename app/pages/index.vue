@@ -384,15 +384,22 @@ await initialize()
 
             <div
               :ref="(el) => setListRef(panel.id, el)"
-              class="h-full space-y-1 overflow-auto"
+              :class="[
+                'h-full space-y-1 overflow-auto',
+                activePanelId !== panel.id ? 'opacity-65' : ''
+              ]"
             >
               <UButton
                 v-for="entry in panel.entries"
                 :key="entry.key"
                 class="w-full justify-start"
                 :data-entry-key="entry.key"
-                :color="isSelected(panel, entry) ? 'primary' : 'neutral'"
-                :variant="isSelected(panel, entry) ? 'soft' : 'ghost'"
+                :color="isSelected(panel, entry)
+                  ? (activePanelId === panel.id ? 'primary' : 'neutral')
+                  : 'neutral'"
+                :variant="isSelected(panel, entry)
+                  ? (activePanelId === panel.id ? 'soft' : 'subtle')
+                  : 'ghost'"
                 @click.stop="onEntryClick(panel, entry)"
                 @dblclick.stop="onEntryDoubleClick(panel, entry)"
               >
