@@ -68,7 +68,10 @@ const {
   createDir
 } = useFileManagerActions(panels)
 
-const hasActionContext = computed(() => !!activePanel.value.rootId)
+const hasSourcesListVisible = computed(() => (
+  [leftPanel, rightPanel].some(panel => !panel.rootId || panel.entries.some(entry => entry.kind === 'root'))
+))
+const hasActionContext = computed(() => !hasSourcesListVisible.value && !!activePanel.value.rootId)
 
 const currentTheme = computed<'light' | 'dark'>({
   get: () => colorMode.preference === 'dark' ? 'dark' : 'light',
