@@ -27,6 +27,23 @@ interface NavigationOptions {
   recordHistory?: boolean
 }
 
+interface StoredPanelsState {
+  activePanelId?: 'left' | 'right'
+  left?: PanelLocation
+  right?: PanelLocation
+}
+
+const PANELS_STORAGE_KEY = 'ffile.panels'
+
+function getParentPath(path: string) {
+  const segments = path.split('/').filter(Boolean)
+  if (!segments.length) {
+    return ''
+  }
+
+  return segments.slice(0, -1).join('/')
+}
+
 export function useFileManagerPanels() {
   const api = useFileManagerApi()
   const toast = useAppToast()
@@ -59,6 +76,57 @@ export function useFileManagerPanels() {
     }
     return map
   })
+
+  function readStoredPanelsState(): StoredPanelsState | null {
+    if (!import.meta.client) {
+      return null
+    }
+
+    try {
+      const raw = localStorage.getItem(PANELS_STORAGE_KEY)
+      if (!raw) {
+        return null
+      }
+
+      const parsed = JSON.parse(raw) as StoredPanelsState
+      if (!parsed || typeof parsed !== 'object') {
+        return null
+      }
+
+      return parsed
+    } catch {
+      return null
+    }
+  }
+
+  function normalizeStoredLocation(raw: PanelLocation | undefined, knownRootIds: Set<string>): PanelLocation {
+    if (!raw?.rootId || !knownRootIds.has(raw.rootId)) {
+      return { rootId: null, path: '' }
+    }
+
+    return {
+      rootId: raw.rootId,
+      path: typeof raw.path === 'string' ? raw.path.trim().replace(/^\/+/, '') : ''
+    }
+  }
+
+  function savePanelsState() {
+    if (!import.meta.client) {
+      return
+    }
+
+    const state: StoredPanelsState = {
+      activePanelId: activePanelId.value,
+      left: getPanelLocation(leftPanel),
+      right: getPanelLocation(rightPanel)
+    }
+
+    try {
+      localStorage.setItem(PANELS_STORAGE_KEY, JSON.stringify(state))
+    } catch {
+      // Ignore localStorage write errors.
+    }
+  }
 
   function getPanelLocation(panel: PanelState): PanelLocation {
     return {
@@ -315,6 +383,27 @@ export function useFileManagerPanels() {
     }
   }
 
+  async function loadPanelWithFallback(panel: PanelState) {
+    while (panel.rootId) {
+      try {
+        await loadPanel(panel)
+        return
+      } catch {
+        if (panel.path) {
+          panel.path = getParentPath(panel.path)
+          continue
+        }
+
+        panel.rootId = null
+        panel.path = ''
+        panel.parentPath = null
+        break
+      }
+    }
+
+    await loadPanel(panel)
+  }
+
   function snapshotPanel(panel: PanelState) {
     return {
       rootId: panel.rootId,
@@ -366,7 +455,32 @@ export function useFileManagerPanels() {
 
   async function initialize() {
     await loadRoots()
-    await Promise.allSettled([loadPanel(leftPanel), loadPanel(rightPanel)])
+
+    const knownRootIds = new Set(roots.value.map(root => root.id))
+    const stored = readStoredPanelsState()
+
+    if (stored) {
+      const leftLocation = normalizeStoredLocation(stored.left, knownRootIds)
+      leftPanel.rootId = leftLocation.rootId
+      leftPanel.path = leftLocation.path
+      leftPanel.parentPath = null
+
+      const rightLocation = normalizeStoredLocation(stored.right, knownRootIds)
+      rightPanel.rootId = rightLocation.rootId
+      rightPanel.path = rightLocation.path
+      rightPanel.parentPath = null
+
+      if (stored.activePanelId === 'left' || stored.activePanelId === 'right') {
+        activePanelId.value = stored.activePanelId
+      }
+    }
+
+    await Promise.allSettled([
+      loadPanelWithFallback(leftPanel),
+      loadPanelWithFallback(rightPanel)
+    ])
+
+    savePanelsState()
   }
 
   function selectPanel(panel: PanelState) {
@@ -524,6 +638,17 @@ export function useFileManagerPanels() {
   function getSelectedIndex(panel: PanelState) {
     return selectedIndex(panel)
   }
+
+  watch(
+    () => [
+      activePanelId.value,
+      leftPanel.rootId, leftPanel.path,
+      rightPanel.rootId, rightPanel.path
+    ],
+    () => {
+      savePanelsState()
+    }
+  )
 
   return {
     roots,
