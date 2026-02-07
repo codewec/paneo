@@ -90,10 +90,16 @@ const {
   createDir
 } = useFileManagerActions(panels)
 
-const hasSourcesListVisible = computed(() => (
-  [leftPanel, rightPanel].some(panel => !panel.rootId || panel.entries.some(entry => entry.kind === 'root'))
-))
-const hasActionContext = computed(() => !hasSourcesListVisible.value && !!activePanel.value.rootId)
+const actionContext = computed(() => {
+  return {
+    canView: canView.value,
+    canEdit: canEdit.value,
+    canCopy: canCopy.value,
+    canRename: canRename.value,
+    canCreateDir: canCreateDir.value,
+    canDelete: canDelete.value
+  }
+})
 const copyProgressStatusLabel = computed(() => {
   const status = activeCopyTask.value?.status
   if (!status) {
@@ -198,16 +204,16 @@ useFileManagerHotkeys({
   onPageUp: () => moveSelectionByPage(activePanel.value, -1),
   onEnter: () => openSelectedEntry(activePanel.value),
   onF1: openSettings,
-  onF3: () => hasActionContext.value ? openViewer() : Promise.resolve(),
-  onF4: () => hasActionContext.value ? openEditor() : Promise.resolve(),
-  onF5: () => hasActionContext.value && canCopy.value ? Promise.resolve(openCopy()) : Promise.resolve(),
-  onF6: () => hasActionContext.value && canRename.value ? Promise.resolve(openRename()) : Promise.resolve(),
+  onF3: () => actionContext.value.canView ? openViewer() : Promise.resolve(),
+  onF4: () => actionContext.value.canEdit ? openEditor() : Promise.resolve(),
+  onF5: () => actionContext.value.canCopy ? Promise.resolve(openCopy()) : Promise.resolve(),
+  onF6: () => actionContext.value.canRename ? Promise.resolve(openRename()) : Promise.resolve(),
   onF7: () => {
-    if (hasActionContext.value) {
+    if (actionContext.value.canCreateDir) {
       openCreateDir()
     }
   },
-  onF8: () => hasActionContext.value ? removeSelected() : Promise.resolve()
+  onF8: () => actionContext.value.canDelete ? removeSelected() : Promise.resolve()
 })
 
 watch(createDirOpen, (isOpen) => {
@@ -413,7 +419,7 @@ await initialize()
             color="neutral"
             variant="outline"
             class="justify-center"
-            :disabled="!hasActionContext || !canView"
+            :disabled="!actionContext.canView"
             @click="openViewer"
           />
           <UButton
@@ -422,7 +428,7 @@ await initialize()
             color="neutral"
             variant="outline"
             class="justify-center"
-            :disabled="!hasActionContext || !canEdit"
+            :disabled="!actionContext.canEdit"
             @click="openEditor"
           />
           <UButton
@@ -431,7 +437,7 @@ await initialize()
             color="neutral"
             variant="outline"
             class="justify-center"
-            :disabled="!hasActionContext || !canCopy"
+            :disabled="!actionContext.canCopy"
             @click="openCopy"
           />
           <UButton
@@ -440,7 +446,7 @@ await initialize()
             color="neutral"
             variant="outline"
             class="justify-center"
-            :disabled="!hasActionContext || !canRename"
+            :disabled="!actionContext.canRename"
             @click="openRename"
           />
           <UButton
@@ -449,7 +455,7 @@ await initialize()
             color="neutral"
             variant="outline"
             class="justify-center"
-            :disabled="!hasActionContext || !canCreateDir"
+            :disabled="!actionContext.canCreateDir"
             @click="openCreateDir"
           />
           <UButton
@@ -458,7 +464,7 @@ await initialize()
             color="error"
             variant="outline"
             class="justify-center"
-            :disabled="!hasActionContext || !canDelete"
+            :disabled="!actionContext.canDelete"
             @click="removeSelected"
           />
         </div>
