@@ -54,6 +54,7 @@
   "copy": {
     "from": "From",
     "to": "To",
+    "itemsSelected": "Selected items: {count}",
     "overwriteExisting": "Overwrite if target already exists",
     "deleteSource": "Delete source files after copy",
     "deleteSourceBlocked": "\"Delete source files\" option is unavailable: current destination folder is inside the source folder.",

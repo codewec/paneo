@@ -434,12 +434,15 @@ await initialize()
                 v-for="entry in panel.entries"
                 :key="entry.key"
                 class="w-full justify-start"
+                :class="[
+                  isSelected(panel, entry) && isMarked(panel, entry) ? 'text-warning' : ''
+                ]"
                 :data-entry-key="entry.key"
                 :color="isSelected(panel, entry)
-                  ? (activePanelId === panel.id ? 'primary' : 'neutral')
-                  : isMarked(panel, entry)
-                    ? 'warning'
-                    : 'neutral'"
+                    ? (activePanelId === panel.id ? 'primary' : 'neutral')
+                    : isMarked(panel, entry)
+                      ? 'warning'
+                      : 'neutral'"
                 :variant="isSelected(panel, entry)
                   ? (activePanelId === panel.id ? 'soft' : 'subtle')
                   : isMarked(panel, entry)

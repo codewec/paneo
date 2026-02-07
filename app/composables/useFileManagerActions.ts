@@ -13,6 +13,7 @@ interface PanelsContext {
   getActionEntries: (panel: PanelState) => PanelEntry[]
   getRootName: (rootId: string) => string
   getSelectedIndex: (panel: PanelState) => number
+  clearMarked: (panel: PanelState) => void
   loadPanel: (panel: PanelState, options?: { preferredSelectedIndex?: number | null }) => Promise<void>
 }
 
@@ -39,6 +40,12 @@ interface CopyTask {
   minimized: boolean
   toastId: string | number | null
   polling: boolean
+}
+
+interface CopyRequestItem {
+  fromPath: string
+  fromKind: 'file' | 'dir'
+  fromName: string
 }
 
 function isImagePath(filePath: string) {
@@ -113,7 +120,7 @@ export function useFileManagerActions(panels: PanelsContext) {
   const copySubmitting = ref(false)
   const copyFromLabel = ref('')
   const copyToLabel = ref('')
-  const copyRequest = ref<{ fromRootId: string, fromPath: string, fromKind: 'file' | 'dir', toRootId: string, toDirPath: string } | null>(null)
+  const copyRequest = ref<{ fromRootId: string, items: CopyRequestItem[], toRootId: string, toDirPath: string } | null>(null)
 
   const renameOpen = ref(false)
   const renameName = ref('')
@@ -173,7 +180,7 @@ export function useFileManagerActions(panels: PanelsContext) {
 
   const copyDeleteSourceDisabled = computed(() => {
     const request = copyRequest.value
-    if (!request || request.fromKind !== 'dir') {
+    if (!request) {
       return false
     }
 
@@ -181,7 +188,13 @@ export function useFileManagerActions(panels: PanelsContext) {
       return false
     }
 
-    return request.toDirPath === request.fromPath || request.toDirPath.startsWith(`${request.fromPath}/`)
+    return request.items.some((item) => {
+      if (item.fromKind !== 'dir') {
+        return false
+      }
+
+      return request.toDirPath === item.fromPath || request.toDirPath.startsWith(`${item.fromPath}/`)
+    })
   })
 
   const canUseMoveOptimization = computed(() => {
@@ -195,6 +208,10 @@ export function useFileManagerActions(panels: PanelsContext) {
     }
 
     if (copyOverwriteExisting.value) {
+      return false
+    }
+
+    if (request.items.length !== 1) {
       return false
     }
 
@@ -635,9 +652,8 @@ export function useFileManagerActions(panels: PanelsContext) {
 
     const sourcePanel = panels.activePanel.value
     const destinationPanel = panels.passivePanel.value
-    const entry = activeSelection.value
-
-    if (!entry || !sourcePanel.rootId || entry.kind === 'root' || entry.kind === 'up') {
+    const actionEntries = panels.getActionEntries(sourcePanel)
+    if (!sourcePanel.rootId || !actionEntries.length) {
       return
     }
 
@@ -651,15 +667,20 @@ export function useFileManagerActions(panels: PanelsContext) {
 
     copyRequest.value = {
       fromRootId: sourcePanel.rootId,
-      fromPath: entry.path,
-      fromKind: entry.kind,
+      items: actionEntries.map(entry => ({
+        fromPath: entry.path,
+        fromKind: entry.kind as 'file' | 'dir',
+        fromName: entry.name
+      })),
       toRootId: destinationPanel.rootId,
       toDirPath: destinationPanel.path
     }
 
     const sourceRootName = panels.getRootName(sourcePanel.rootId)
     const destinationRootName = panels.getRootName(destinationPanel.rootId)
-    copyFromLabel.value = entry.path ? `${sourceRootName}:/${entry.path}` : `${sourceRootName}:/`
+    copyFromLabel.value = actionEntries.length === 1
+      ? `${sourceRootName}:/${actionEntries[0]?.path || ''}`
+      : t('copy.itemsSelected', { count: actionEntries.length })
     copyToLabel.value = destinationPanel.path ? `${destinationRootName}:/${destinationPanel.path}` : `${destinationRootName}:/`
     copyOverwriteExisting.value = true
     copyDeleteSource.value = false
@@ -749,68 +770,96 @@ export function useFileManagerActions(panels: PanelsContext) {
 
       if (canUseMoveOptimization.value) {
         const request = copyRequest.value
-        await api.move(
-          request.fromRootId,
-          request.fromPath,
-          request.toRootId,
-          request.toDirPath
-        )
+        const item = request.items[0]
+        if (!item) {
+          return
+        }
+
+        await api.move(request.fromRootId, item.fromPath, request.toRootId, request.toDirPath)
 
         copyConfirmOpen.value = false
         copyRequest.value = null
         copyFromLabel.value = ''
         copyToLabel.value = ''
+        panels.clearMarked(panels.activePanel.value)
 
         toast.add({ title: t('toasts.moved'), color: 'success' })
-        await refreshSourceAfterDeleteIfVisible(request.fromRootId, request.fromPath)
+        await refreshSourceAfterDeleteIfVisible(request.fromRootId, item.fromPath)
         await refreshDestinationIfVisible(
           request.toRootId,
           request.toDirPath,
-          joinRelativePath(request.toDirPath, getLastPathSegment(request.fromPath))
+          joinRelativePath(request.toDirPath, getLastPathSegment(item.fromPath))
         )
         return
       }
 
-      const started = await api.startCopy(
-        copyRequest.value.fromRootId,
-        copyRequest.value.fromPath,
-        copyRequest.value.toRootId,
-        copyRequest.value.toDirPath,
-        copyOverwriteExisting.value
-      )
+      const request = copyRequest.value
+      const startedTaskIds: string[] = []
+      const startErrors: string[] = []
 
-      const taskId = generateTaskId()
-      const task: CopyTask = {
-        id: taskId,
-        jobId: started.jobId,
-        fromRootId: copyRequest.value.fromRootId,
-        fromPath: copyRequest.value.fromPath,
-        toRootId: copyRequest.value.toRootId,
-        toDirPath: copyRequest.value.toDirPath,
-        targetBasePath: joinRelativePath(copyRequest.value.toDirPath, getLastPathSegment(copyRequest.value.fromPath)),
-        deleteSource: copyDeleteSource.value,
-        fromLabel: copyFromLabel.value,
-        toLabel: copyToLabel.value,
-        status: 'running',
-        totalFiles: 0,
-        processedFiles: 0,
-        copiedFiles: 0,
-        skipped: 0,
-        currentFile: '',
-        error: '',
-        minimized: false,
-        toastId: null,
-        polling: false
+      for (const item of request.items) {
+        try {
+          const started = await api.startCopy(
+            request.fromRootId,
+            item.fromPath,
+            request.toRootId,
+            request.toDirPath,
+            copyOverwriteExisting.value
+          )
+
+          const sourceRootName = panels.getRootName(request.fromRootId)
+          const destinationRootName = panels.getRootName(request.toRootId)
+          const taskId = generateTaskId()
+          const task: CopyTask = {
+            id: taskId,
+            jobId: started.jobId,
+            fromRootId: request.fromRootId,
+            fromPath: item.fromPath,
+            toRootId: request.toRootId,
+            toDirPath: request.toDirPath,
+            targetBasePath: joinRelativePath(request.toDirPath, getLastPathSegment(item.fromPath)),
+            deleteSource: copyDeleteSource.value,
+            fromLabel: `${sourceRootName}:/${item.fromPath}`,
+            toLabel: request.toDirPath ? `${destinationRootName}:/${request.toDirPath}` : `${destinationRootName}:/`,
+            status: 'running',
+            totalFiles: 0,
+            processedFiles: 0,
+            copiedFiles: 0,
+            skipped: 0,
+            currentFile: '',
+            error: '',
+            minimized: false,
+            toastId: null,
+            polling: false
+          }
+
+          copyTasks.value.unshift(task)
+          startedTaskIds.push(task.id)
+          void monitorCopyTask(task.id)
+        } catch (error) {
+          startErrors.push(`${item.fromName}: ${getErrorMessage(error)}`)
+        }
       }
 
-      copyTasks.value.unshift(task)
       copyConfirmOpen.value = false
       copyRequest.value = null
       copyFromLabel.value = ''
       copyToLabel.value = ''
+      if (startedTaskIds.length) {
+        panels.clearMarked(panels.activePanel.value)
+      }
 
-      openCopyTask(task.id)
-      void monitorCopyTask(task.id)
+      if (startedTaskIds.length) {
+        openCopyTask(startedTaskIds[0]!)
+      }
+
+      if (startErrors.length) {
+        toast.add({
+          title: t('toasts.copyFailed'),
+          description: startErrors[0],
+          color: 'error'
+        })
+      }
     } catch (error) {
       toast.add({
         title: t('toasts.copyFailed'),

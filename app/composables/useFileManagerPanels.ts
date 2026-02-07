@@ -783,6 +783,7 @@ export function useFileManagerPanels() {
     getSelectedIndex,
     setListRef,
     focusSelectedEntry,
+    clearMarked,
     moveSelection,
     moveSelectionByPage,
     toggleMarkAndMoveNext,
