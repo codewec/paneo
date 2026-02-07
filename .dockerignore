@@ -1,0 +1,11 @@
+.git
+.github
+.nuxt
+.output
+node_modules
+npm-debug.log*
+pnpm-debug.log*
+Dockerfile*
+docker-compose*.yml
+.env
+.DS_Store

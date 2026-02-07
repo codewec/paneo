@@ -1,5 +1,7 @@
 <script setup lang="ts">
-const LOCALE_COOKIE_KEY = 'ffile.locale'
+const LOCALE_COOKIE_KEY = 'paneo.locale'
+const SUPPORTED_LOCALES = ['ru', 'en', 'zh-Hant', 'de', 'es'] as const
+type LocaleCode = typeof SUPPORTED_LOCALES[number]
 
 const panels = useFileManagerPanels()
 const api = useFileManagerApi()
@@ -11,7 +13,7 @@ const localeCookie = useCookie<string | null>(LOCALE_COOKIE_KEY, {
   path: '/'
 })
 const savedLocale = localeCookie.value
-if ((savedLocale === 'ru' || savedLocale === 'en') && savedLocale !== locale.value) {
+if (savedLocale && SUPPORTED_LOCALES.includes(savedLocale as LocaleCode) && savedLocale !== locale.value) {
   await setLocale(savedLocale)
 }
 
@@ -226,7 +228,29 @@ function setTheme(value: 'light' | 'dark') {
   currentTheme.value = value
 }
 
-function setLanguage(value: 'ru' | 'en') {
+const languageOptions = computed(() => ([
+  { label: `${t('settings.russian')} (Russian)`, value: 'ru' as const },
+  { label: `${t('settings.english')} (English)`, value: 'en' as const },
+  { label: `${t('settings.chineseTraditional')} (Traditional Chinese)`, value: 'zh-Hant' as const },
+  { label: `${t('settings.german')} (German)`, value: 'de' as const },
+  { label: `${t('settings.spanish')} (Spanish)`, value: 'es' as const }
+]))
+
+const selectedLanguage = computed<LocaleCode>({
+  get: () => {
+    const value = locale.value as LocaleCode
+    return SUPPORTED_LOCALES.includes(value) ? value : 'en'
+  },
+  set: (value) => {
+    if (!value) {
+      return
+    }
+
+    setLanguage(value)
+  }
+})
+
+function setLanguage(value: LocaleCode) {
   if (locale.value === value) {
     return
   }
@@ -277,7 +301,7 @@ function readFileEntry(entry: DndFileEntry, basePath: string) {
   return new Promise<File[]>((resolve, reject) => {
     entry.file((file) => {
       const relativePath = basePath ? `${basePath}/${file.name}` : file.name
-      ;(file as File & { __ffileRelativePath?: string }).__ffileRelativePath = relativePath
+      ;(file as File & { __paneoRelativePath?: string }).__paneoRelativePath = relativePath
       resolve([file])
     }, reject)
   })
@@ -649,155 +673,155 @@ await initialize()
               :ui="{ header: 'p-2', body: 'min-h-0 flex-1 overflow-hidden p-2', footer: 'p-2' }"
               @click="selectPanel(panel)"
             >
-            <template #header>
-              <div class="flex items-center justify-between gap-2">
-                <div class="min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
-                  <UButton
-                    icon="i-lucide-house"
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    class="shrink-0 px-1"
-                    :title="t('panel.sources')"
-                    @click.stop="openSources(panel)"
-                  />
-                  <span
-                    v-if="panel.rootId"
-                    class="text-muted"
-                  >/</span>
-                  <span
-                    v-if="!panel.rootId"
-                    class="text-sm font-medium text-muted"
-                  >
-                    {{ panelTitle(panel) }}
-                  </span>
-                  <template v-else>
-                    <template
-                      v-for="(part, partIndex) in pathParts(panel)"
-                      :key="`${part.path || 'root'}-${partIndex}`"
+              <template #header>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+                    <UButton
+                      icon="i-lucide-house"
+                      size="xs"
+                      color="neutral"
+                      variant="ghost"
+                      class="shrink-0 px-1"
+                      :title="t('panel.sources')"
+                      @click.stop="openSources(panel)"
+                    />
+                    <span
+                      v-if="panel.rootId"
+                      class="text-muted"
+                    >/</span>
+                    <span
+                      v-if="!panel.rootId"
+                      class="text-sm font-medium text-muted"
                     >
+                      {{ panelTitle(panel) }}
+                    </span>
+                    <template v-else>
+                      <template
+                        v-for="(part, partIndex) in pathParts(panel)"
+                        :key="`${part.path || 'root'}-${partIndex}`"
+                      >
+                        <UButton
+                          size="xs"
+                          color="neutral"
+                          variant="ghost"
+                          class="shrink-0 px-1"
+                          @click.stop="navigateToPath(panel, part.path)"
+                        >
+                          {{ part.label }}
+                        </UButton>
+                        <span
+                          v-if="partIndex < pathParts(panel).length - 1"
+                          class="text-muted"
+                        >/</span>
+                      </template>
+                    </template>
+                  </div>
+                  <ClientOnly>
+                    <div class="flex items-center gap-1">
                       <UButton
+                        icon="i-lucide-refresh-cw"
                         size="xs"
                         color="neutral"
                         variant="ghost"
-                        class="shrink-0 px-1"
-                        @click.stop="navigateToPath(panel, part.path)"
-                      >
-                        {{ part.label }}
-                      </UButton>
-                      <span
-                        v-if="partIndex < pathParts(panel).length - 1"
-                        class="text-muted"
-                      >/</span>
+                        :title="t('buttons.refresh')"
+                        @click.stop="refreshBothPanels"
+                      />
+                      <UButton
+                        :icon="panel.id === 'left' ? 'i-lucide-panel-right-open' : 'i-lucide-panel-left-open'"
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        :title="panel.id === 'left' ? t('panel.mirrorRight') : t('panel.mirrorLeft')"
+                        @click.stop="mirrorFromOpposite(panel)"
+                      />
+                      <UButton
+                        icon="i-lucide-history"
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        :title="t('panel.back')"
+                        :disabled="!canGoBack(panel)"
+                        @click.stop="goBack(panel)"
+                      />
+                    </div>
+                    <template #fallback>
+                      <div class="h-6 w-24 shrink-0" />
                     </template>
-                  </template>
+                  </ClientOnly>
                 </div>
-                <ClientOnly>
-                  <div class="flex items-center gap-1">
-                    <UButton
-                      icon="i-lucide-refresh-cw"
-                      size="xs"
-                      color="neutral"
-                      variant="ghost"
-                      :title="t('buttons.refresh')"
-                      @click.stop="refreshBothPanels"
-                    />
-                    <UButton
-                      :icon="panel.id === 'left' ? 'i-lucide-panel-right-open' : 'i-lucide-panel-left-open'"
-                      size="xs"
-                      color="neutral"
-                      variant="ghost"
-                      :title="panel.id === 'left' ? t('panel.mirrorRight') : t('panel.mirrorLeft')"
-                      @click.stop="mirrorFromOpposite(panel)"
-                    />
-                    <UButton
-                      icon="i-lucide-history"
-                      size="xs"
-                      color="neutral"
-                      variant="ghost"
-                      :title="t('panel.back')"
-                      :disabled="!canGoBack(panel)"
-                      @click.stop="goBack(panel)"
-                    />
-                  </div>
-                  <template #fallback>
-                    <div class="h-6 w-24 shrink-0" />
-                  </template>
-                </ClientOnly>
-              </div>
-            </template>
+              </template>
 
-            <UAlert
-              v-if="panel.error"
-              class="mb-2"
-              color="error"
-              variant="subtle"
-              :title="panel.error"
-            />
+              <UAlert
+                v-if="panel.error"
+                class="mb-2"
+                color="error"
+                variant="subtle"
+                :title="panel.error"
+              />
 
-            <div
-              class="mb-2 rounded-md border border-dashed px-3 py-2 text-xs transition"
-              :class="[
-                panelDragOver[panel.id] && panel.rootId
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-default text-muted',
-                !panel.rootId ? 'opacity-50' : ''
-              ]"
-            >
-              {{ t('panel.dropUpload') }}
-            </div>
-
-            <div
-              :ref="(el) => setListRef(panel.id, el)"
-              :class="[
-                'h-full space-y-1 overflow-auto -mr-2 pr-2',
-                activePanelId !== panel.id ? 'opacity-65' : ''
-              ]"
-            >
-              <UButton
-                v-for="entry in panel.entries"
-                :key="entry.key"
-                class="w-full justify-start"
+              <div
+                class="mb-2 rounded-md border border-dashed px-3 py-2 text-xs transition"
                 :class="[
-                  isSelected(panel, entry) && isMarked(panel, entry) ? 'text-warning' : ''
+                  panelDragOver[panel.id] && panel.rootId
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-default text-muted',
+                  !panel.rootId ? 'opacity-50' : ''
                 ]"
-                :data-entry-key="entry.key"
-                :color="isSelected(panel, entry)
-                  ? (activePanelId === panel.id ? 'primary' : 'neutral')
-                  : isMarked(panel, entry)
-                    ? 'warning'
-                    : 'neutral'"
-                :variant="isSelected(panel, entry)
-                  ? (activePanelId === panel.id ? 'soft' : 'subtle')
-                  : isMarked(panel, entry)
-                    ? 'soft'
-                    : 'ghost'"
-                @click.stop="onEntryClick(panel, entry, $event)"
-                @dblclick.stop="onEntryDoubleClick(panel, entry)"
               >
-                <template #leading>
-                  <UIcon
-                    :name="entry.kind === 'root' ? 'i-lucide-hard-drive' : entry.kind === 'dir' ? 'i-lucide-folder' : 'i-lucide-file'"
-                    class="size-4"
-                  />
-                </template>
-
-                <span class="truncate">{{ entry.name }}</span>
-
-                <template #trailing>
-                  <span class="text-xs text-muted">
-                    {{ entry.kind === 'file' ? formatSize(entry.size) : '' }}
-                  </span>
-                </template>
-              </UButton>
-            </div>
-
-            <template #footer>
-              <div class="text-xs text-muted flex items-center justify-between">
-                <span>{{ formatItemsCount(visibleEntryCount(panel)) }}</span>
-                <span>{{ selectedMtime(panel) ? formatDate(selectedMtime(panel)) : '' }}</span>
+                {{ t('panel.dropUpload') }}
               </div>
-            </template>
+
+              <div
+                :ref="(el) => setListRef(panel.id, el)"
+                :class="[
+                  'h-full space-y-1 overflow-auto -mr-2 pr-2',
+                  activePanelId !== panel.id ? 'opacity-65' : ''
+                ]"
+              >
+                <UButton
+                  v-for="entry in panel.entries"
+                  :key="entry.key"
+                  class="w-full justify-start"
+                  :class="[
+                    isSelected(panel, entry) && isMarked(panel, entry) ? 'text-warning' : ''
+                  ]"
+                  :data-entry-key="entry.key"
+                  :color="isSelected(panel, entry)
+                    ? (activePanelId === panel.id ? 'primary' : 'neutral')
+                    : isMarked(panel, entry)
+                      ? 'warning'
+                      : 'neutral'"
+                  :variant="isSelected(panel, entry)
+                    ? (activePanelId === panel.id ? 'soft' : 'subtle')
+                    : isMarked(panel, entry)
+                      ? 'soft'
+                      : 'ghost'"
+                  @click.stop="onEntryClick(panel, entry, $event)"
+                  @dblclick.stop="onEntryDoubleClick(panel, entry)"
+                >
+                  <template #leading>
+                    <UIcon
+                      :name="entry.kind === 'root' ? 'i-lucide-hard-drive' : entry.kind === 'dir' ? 'i-lucide-folder' : 'i-lucide-file'"
+                      class="size-4"
+                    />
+                  </template>
+
+                  <span class="truncate">{{ entry.name }}</span>
+
+                  <template #trailing>
+                    <span class="text-xs text-muted">
+                      {{ entry.kind === 'file' ? formatSize(entry.size) : '' }}
+                    </span>
+                  </template>
+                </UButton>
+              </div>
+
+              <template #footer>
+                <div class="text-xs text-muted flex items-center justify-between">
+                  <span>{{ formatItemsCount(visibleEntryCount(panel)) }}</span>
+                  <span>{{ selectedMtime(panel) ? formatDate(selectedMtime(panel)) : '' }}</span>
+                </div>
+              </template>
             </UCard>
           </div>
         </div>
@@ -1266,22 +1290,13 @@ await initialize()
             <p class="text-sm text-muted">
               {{ t('settings.language') }}
             </p>
-            <div class="grid w-full grid-cols-2 gap-2">
-              <UButton
-                class="flex-1 justify-center"
-                :variant="locale === 'ru' ? 'solid' : 'outline'"
-                @click="setLanguage('ru')"
-              >
-                {{ t('settings.russian') }}
-              </UButton>
-              <UButton
-                class="flex-1 justify-center"
-                :variant="locale === 'en' ? 'solid' : 'outline'"
-                @click="setLanguage('en')"
-              >
-                {{ t('settings.english') }}
-              </UButton>
-            </div>
+            <USelect
+              v-model="selectedLanguage"
+              :items="languageOptions"
+              value-key="value"
+              label-key="label"
+              class="w-full"
+            />
           </div>
 
           <div class="space-y-2">

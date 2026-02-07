@@ -1,0 +1,135 @@
+{
+  "app": {
+    "description": "Zweispaltiger Dateimanager mit Nuxt UI"
+  },
+  "panel": {
+    "sources": "Quellen",
+    "left": "Links",
+    "right": "Rechts",
+    "mirror": "Spiegeln",
+    "mirrorRight": "Rechte Ansicht spiegeln",
+    "mirrorLeft": "Linke Ansicht spiegeln",
+    "back": "Zurück",
+    "items_one": "{count} Element",
+    "items_other": "{count} Elemente",
+    "dropUpload": "Dateien oder Ordner hier ablegen"
+  },
+  "hotkeys": {
+    "f1Settings": "F1 Einstellungen",
+    "f2Upload": "F2 Hochladen",
+    "f3View": "F3 Anzeigen",
+    "f4Edit": "F4 Bearbeiten",
+    "f5Copy": "F5 Kopieren",
+    "f6Rename": "F6 Umbenennen",
+    "f7Create": "F7 Erstellen",
+    "f8Delete": "F8 Löschen"
+  },
+  "modal": {
+    "editor": "Editor: {name}",
+    "create": "Erstellen",
+    "createFolder": "Ordner erstellen",
+    "settings": "Einstellungen",
+    "delete": "Löschen",
+    "copy": "Kopieren",
+    "copyOrMove": "Kopieren / Verschieben",
+    "copyProgress": "Kopiervorgang",
+    "rename": "Umbenennen",
+    "upload": "Hochladen",
+    "uploadProgress": "Upload-Fortschritt"
+  },
+  "fields": {
+    "name": "Name",
+    "file": "Datei",
+    "folderName": "Ordnername",
+    "newName": "Neuer Name",
+    "chooseFiles": "Dateien auswählen",
+    "chooseFolders": "Ordner auswählen"
+  },
+  "buttons": {
+    "save": "Speichern",
+    "create": "Erstellen",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "copy": "Kopieren",
+    "cancelCopy": "Kopieren abbrechen",
+    "cancelUpload": "Upload abbrechen",
+    "minimize": "Minimieren",
+    "open": "Öffnen",
+    "rename": "Umbenennen",
+    "refresh": "Aktualisieren",
+    "upload": "Hochladen"
+  },
+  "upload": {
+    "selectedCount_one": "Ausgewählt: {count} Element",
+    "selectedCount_other": "Ausgewählt: {count} Elemente",
+    "to": "Ziel",
+    "preparing": "Upload wird vorbereitet...",
+    "status": {
+      "running": "Läuft",
+      "completed": "Abgeschlossen",
+      "failed": "Fehlgeschlagen",
+      "canceled": "Abgebrochen"
+    }
+  },
+  "copy": {
+    "from": "Von",
+    "to": "Nach",
+    "itemsSelected": "Ausgewählte Elemente: {count}",
+    "overwriteExisting": "Überschreiben, wenn Ziel bereits existiert",
+    "deleteSource": "Quelldateien nach dem Kopieren löschen",
+    "deleteSourceBlocked": "Option „Quelldateien löschen“ ist nicht verfügbar: Der Zielordner liegt innerhalb des Quellordners.",
+    "preparing": "Kopiervorgang wird vorbereitet...",
+    "status": {
+      "running": "Läuft",
+      "completed": "Abgeschlossen",
+      "failed": "Fehlgeschlagen",
+      "canceled": "Abgebrochen"
+    }
+  },
+  "settings": {
+    "language": "Sprache",
+    "theme": "Design",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "russian": "Russisch",
+    "english": "Englisch",
+    "chineseTraditional": "Traditionelles Chinesisch",
+    "german": "Deutsch",
+    "spanish": "Spanisch"
+  },
+  "loading": "Laden...",
+  "alerts": {
+    "noAccessFolder": "Kein Zugriff auf den Ordner"
+  },
+  "toasts": {
+    "openFileFailed": "Datei konnte nicht geöffnet werden",
+    "saveFailed": "Fehler beim Speichern",
+    "saved": "Datei gespeichert",
+    "openTargetSourceFirst": "Öffnen Sie zuerst die Zielquelle",
+    "copyFailed": "Kopierfehler",
+    "copySkipped": "Ziel existiert bereits, Kopieren übersprungen",
+    "copyCanceled": "Kopieren abgebrochen",
+    "copyInProgress": "Kopiervorgang läuft",
+    "uploadInProgress": "Upload läuft",
+    "uploadCanceled": "Upload abgebrochen",
+    "dropNoFiles": "Dateien konnten aus Drag-and-Drop nicht gelesen werden",
+    "moveFailed": "Verschiebefehler",
+    "copied": "Kopiert",
+    "moved": "Verschoben",
+    "renameFailed": "Fehler beim Umbenennen",
+    "renamed": "Umbenannt",
+    "deleteFailed": "Fehler beim Löschen",
+    "deleted": "Gelöscht",
+    "openSourceFirst": "Öffnen Sie zuerst eine Quelle",
+    "createFolderFailed": "Fehler beim Erstellen des Ordners",
+    "createFileFailed": "Fehler beim Erstellen der Datei",
+    "folderCreated": "Ordner erstellt",
+    "fileCreated": "Datei erstellt",
+    "uploadFailed": "Upload-Fehler",
+    "uploaded": "Upload abgeschlossen"
+  },
+  "confirm": {
+    "delete": "{name} löschen?",
+    "deleteMultiple": "Ausgewählte Elemente löschen ({count})?"
+  }
+}

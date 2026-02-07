@@ -34,7 +34,7 @@ interface StoredPanelsState {
   right?: PanelLocation
 }
 
-const PANELS_COOKIE_KEY = 'ffile.panels'
+const PANELS_COOKIE_KEY = 'paneo.panels'
 
 function getParentPath(path: string) {
   const segments = path.split('/').filter(Boolean)

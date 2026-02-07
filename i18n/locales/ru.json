@@ -96,7 +96,10 @@
     "light": "Светлая",
     "dark": "Темная",
     "russian": "Русский",
-    "english": "English"
+    "english": "English",
+    "chineseTraditional": "繁體中文",
+    "german": "Deutsch",
+    "spanish": "Español"
   },
   "loading": "Загрузка...",
   "alerts": {

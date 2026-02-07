@@ -1,8 +1,8 @@
-# AI Agent Guide: fFile
+# AI Agent Guide: paneo
 
 ## Project Purpose
 
-fFile is a keyboard-friendly, two-pane file manager inspired by Total Commander/Midnight Commander.
+paneo is a keyboard-friendly, two-pane file manager inspired by Total Commander/Midnight Commander.
 It runs as a Nuxt 4 app and is intended to be deployed in Docker, with filesystem access restricted to configured roots.
 
 ## Tech Stack
@@ -75,7 +75,7 @@ Parsing rules:
 - Locale files:
   - `i18n/locales/ru.json`
   - `i18n/locales/en.json`
-- Selected UI language is persisted in localStorage key `ffile.locale`.
+- Selected UI language is persisted in localStorage key `paneo.locale`.
 
 ## Keyboard Shortcuts
 

@@ -1,0 +1,25 @@
+services:
+  paneo:
+    build:
+      context: .
+      target: dev
+    image: ghcr.io/codewec/paneo:dev
+    container_name: paneo-dev
+    user: "${UID}:${GID}"
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      NUXT_HOST: 0.0.0.0
+      NUXT_PORT: 3000
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/.nuxt
+      - ${PANEO_SOURCE_1}:/data/source-1
+      - ${PANEO_SOURCE_2}:/data/source-2
+    command: pnpm dev --host 0.0.0.0 --port 3000

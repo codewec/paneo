@@ -1,0 +1,135 @@
+{
+  "app": {
+    "description": "Administrador de archivos de dos paneles con Nuxt UI"
+  },
+  "panel": {
+    "sources": "Orígenes",
+    "left": "Izquierdo",
+    "right": "Derecho",
+    "mirror": "Espejar",
+    "mirrorRight": "Duplicar panel derecho",
+    "mirrorLeft": "Duplicar panel izquierdo",
+    "back": "Atrás",
+    "items_one": "{count} elemento",
+    "items_other": "{count} elementos",
+    "dropUpload": "Arrastra archivos o carpetas aquí"
+  },
+  "hotkeys": {
+    "f1Settings": "F1 Ajustes",
+    "f2Upload": "F2 Subir",
+    "f3View": "F3 Ver",
+    "f4Edit": "F4 Editar",
+    "f5Copy": "F5 Copiar",
+    "f6Rename": "F6 Renombrar",
+    "f7Create": "F7 Crear",
+    "f8Delete": "F8 Eliminar"
+  },
+  "modal": {
+    "editor": "Editor: {name}",
+    "create": "Crear",
+    "createFolder": "Crear carpeta",
+    "settings": "Ajustes",
+    "delete": "Eliminar",
+    "copy": "Copiar",
+    "copyOrMove": "Copiar / Mover",
+    "copyProgress": "Progreso de copia",
+    "rename": "Renombrar",
+    "upload": "Subir",
+    "uploadProgress": "Progreso de subida"
+  },
+  "fields": {
+    "name": "Nombre",
+    "file": "Archivo",
+    "folderName": "Nombre de carpeta",
+    "newName": "Nuevo nombre",
+    "chooseFiles": "Seleccionar archivos",
+    "chooseFolders": "Seleccionar carpetas"
+  },
+  "buttons": {
+    "save": "Guardar",
+    "create": "Crear",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "copy": "Copiar",
+    "cancelCopy": "Cancelar copia",
+    "cancelUpload": "Cancelar subida",
+    "minimize": "Minimizar",
+    "open": "Abrir",
+    "rename": "Renombrar",
+    "refresh": "Actualizar",
+    "upload": "Subir"
+  },
+  "upload": {
+    "selectedCount_one": "Seleccionado: {count} elemento",
+    "selectedCount_other": "Seleccionados: {count} elementos",
+    "to": "Destino",
+    "preparing": "Preparando subida...",
+    "status": {
+      "running": "En curso",
+      "completed": "Completado",
+      "failed": "Error",
+      "canceled": "Cancelado"
+    }
+  },
+  "copy": {
+    "from": "Desde",
+    "to": "Hacia",
+    "itemsSelected": "Elementos seleccionados: {count}",
+    "overwriteExisting": "Sobrescribir si el destino ya existe",
+    "deleteSource": "Eliminar archivos de origen después de copiar",
+    "deleteSourceBlocked": "La opción \"Eliminar archivos de origen\" no está disponible: la carpeta de destino actual está dentro de la carpeta de origen.",
+    "preparing": "Preparando copia...",
+    "status": {
+      "running": "En curso",
+      "completed": "Completado",
+      "failed": "Error",
+      "canceled": "Cancelado"
+    }
+  },
+  "settings": {
+    "language": "Idioma",
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "russian": "Ruso",
+    "english": "Inglés",
+    "chineseTraditional": "Chino tradicional",
+    "german": "Alemán",
+    "spanish": "Español"
+  },
+  "loading": "Cargando...",
+  "alerts": {
+    "noAccessFolder": "Sin acceso a la carpeta"
+  },
+  "toasts": {
+    "openFileFailed": "No se pudo abrir el archivo",
+    "saveFailed": "Error al guardar",
+    "saved": "Archivo guardado",
+    "openTargetSourceFirst": "Abre primero el origen de destino",
+    "copyFailed": "Error de copia",
+    "copySkipped": "El destino ya existe, copia omitida",
+    "copyCanceled": "Copia cancelada",
+    "copyInProgress": "Copia en curso",
+    "uploadInProgress": "Subida en curso",
+    "uploadCanceled": "Subida cancelada",
+    "dropNoFiles": "No se pudieron leer archivos desde arrastrar y soltar",
+    "moveFailed": "Error al mover",
+    "copied": "Copiado",
+    "moved": "Movido",
+    "renameFailed": "Error al renombrar",
+    "renamed": "Renombrado",
+    "deleteFailed": "Error al eliminar",
+    "deleted": "Eliminado",
+    "openSourceFirst": "Abre primero un origen",
+    "createFolderFailed": "Error al crear carpeta",
+    "createFileFailed": "Error al crear archivo",
+    "folderCreated": "Carpeta creada",
+    "fileCreated": "Archivo creado",
+    "uploadFailed": "Error de subida",
+    "uploaded": "Subida completada"
+  },
+  "confirm": {
+    "delete": "¿Eliminar {name}?",
+    "deleteMultiple": "¿Eliminar elementos seleccionados ({count})?"
+  }
+}

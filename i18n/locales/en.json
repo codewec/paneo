@@ -92,7 +92,10 @@
     "light": "Light",
     "dark": "Dark",
     "russian": "Russian",
-    "english": "English"
+    "english": "English",
+    "chineseTraditional": "Traditional Chinese",
+    "german": "German",
+    "spanish": "Spanish"
   },
   "loading": "Loading...",
   "alerts": {

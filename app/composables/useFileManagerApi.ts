@@ -85,8 +85,8 @@ export function useFileManagerApi() {
     let uploadedBytes = 0
 
     for (const [fileIndex, file] of files.entries()) {
-      const rawRelativePath = (file as File & { webkitRelativePath?: string, __ffileRelativePath?: string }).webkitRelativePath
-      const fallbackRelativePath = (file as File & { __ffileRelativePath?: string }).__ffileRelativePath
+      const rawRelativePath = (file as File & { webkitRelativePath?: string, __paneoRelativePath?: string }).webkitRelativePath
+      const fallbackRelativePath = (file as File & { __paneoRelativePath?: string }).__paneoRelativePath
       const relativePath = rawRelativePath || fallbackRelativePath || file.name
       const uploadId = globalThis.crypto?.randomUUID?.().replaceAll('-', '')
         || `${Date.now()}${Math.random().toString(36).slice(2, 10)}`

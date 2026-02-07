@@ -1,0 +1,135 @@
+{
+  "app": {
+    "description": "以 Nuxt UI 打造的雙欄檔案管理器"
+  },
+  "panel": {
+    "sources": "來源",
+    "left": "左側",
+    "right": "右側",
+    "mirror": "鏡像",
+    "mirrorRight": "複製右側面板",
+    "mirrorLeft": "複製左側面板",
+    "back": "返回",
+    "items_one": "{count} 個項目",
+    "items_other": "{count} 個項目",
+    "dropUpload": "將檔案或資料夾拖曳到此處"
+  },
+  "hotkeys": {
+    "f1Settings": "F1 設定",
+    "f2Upload": "F2 上傳",
+    "f3View": "F3 檢視",
+    "f4Edit": "F4 編輯",
+    "f5Copy": "F5 複製",
+    "f6Rename": "F6 重新命名",
+    "f7Create": "F7 建立",
+    "f8Delete": "F8 刪除"
+  },
+  "modal": {
+    "editor": "編輯器: {name}",
+    "create": "建立",
+    "createFolder": "建立資料夾",
+    "settings": "設定",
+    "delete": "刪除",
+    "copy": "複製",
+    "copyOrMove": "複製 / 移動",
+    "copyProgress": "複製進度",
+    "rename": "重新命名",
+    "upload": "上傳",
+    "uploadProgress": "上傳進度"
+  },
+  "fields": {
+    "name": "名稱",
+    "file": "檔案",
+    "folderName": "資料夾名稱",
+    "newName": "新名稱",
+    "chooseFiles": "選擇檔案",
+    "chooseFolders": "選擇資料夾"
+  },
+  "buttons": {
+    "save": "儲存",
+    "create": "建立",
+    "cancel": "取消",
+    "delete": "刪除",
+    "copy": "複製",
+    "cancelCopy": "取消複製",
+    "cancelUpload": "取消上傳",
+    "minimize": "最小化",
+    "open": "開啟",
+    "rename": "重新命名",
+    "refresh": "重新整理",
+    "upload": "上傳"
+  },
+  "upload": {
+    "selectedCount_one": "已選擇: {count} 個項目",
+    "selectedCount_other": "已選擇: {count} 個項目",
+    "to": "目標",
+    "preparing": "正在準備上傳...",
+    "status": {
+      "running": "進行中",
+      "completed": "已完成",
+      "failed": "失敗",
+      "canceled": "已取消"
+    }
+  },
+  "copy": {
+    "from": "來源",
+    "to": "目標",
+    "itemsSelected": "已選擇項目: {count}",
+    "overwriteExisting": "若目標已存在則覆寫",
+    "deleteSource": "複製完成後刪除來源檔案",
+    "deleteSourceBlocked": "「刪除來源檔案」選項不可用：目前目標資料夾位於來源資料夾內。",
+    "preparing": "正在準備複製...",
+    "status": {
+      "running": "進行中",
+      "completed": "已完成",
+      "failed": "失敗",
+      "canceled": "已取消"
+    }
+  },
+  "settings": {
+    "language": "語言",
+    "theme": "主題",
+    "light": "淺色",
+    "dark": "深色",
+    "russian": "俄文",
+    "english": "英文",
+    "chineseTraditional": "繁體中文",
+    "german": "德文",
+    "spanish": "西班牙文"
+  },
+  "loading": "載入中...",
+  "alerts": {
+    "noAccessFolder": "無法存取資料夾"
+  },
+  "toasts": {
+    "openFileFailed": "無法開啟檔案",
+    "saveFailed": "儲存失敗",
+    "saved": "檔案已儲存",
+    "openTargetSourceFirst": "請先開啟目標來源",
+    "copyFailed": "複製失敗",
+    "copySkipped": "目標已存在，已略過複製",
+    "copyCanceled": "複製已取消",
+    "copyInProgress": "正在複製",
+    "uploadInProgress": "正在上傳",
+    "uploadCanceled": "上傳已取消",
+    "dropNoFiles": "無法從拖放中讀取檔案",
+    "moveFailed": "移動失敗",
+    "copied": "已複製",
+    "moved": "已移動",
+    "renameFailed": "重新命名失敗",
+    "renamed": "已重新命名",
+    "deleteFailed": "刪除失敗",
+    "deleted": "已刪除",
+    "openSourceFirst": "請先開啟來源",
+    "createFolderFailed": "建立資料夾失敗",
+    "createFileFailed": "建立檔案失敗",
+    "folderCreated": "資料夾已建立",
+    "fileCreated": "檔案已建立",
+    "uploadFailed": "上傳失敗",
+    "uploaded": "上傳完成"
+  },
+  "confirm": {
+    "delete": "要刪除 {name} 嗎？",
+    "deleteMultiple": "要刪除所選項目 ({count}) 嗎？"
+  }
+}

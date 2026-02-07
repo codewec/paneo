@@ -3,7 +3,7 @@ const { locale, t } = useI18n()
 
 function handleToastFocus(event: FocusEvent) {
   const target = event.target as HTMLElement | null
-  if (!target?.closest('.ffile-toast-viewport')) {
+  if (!target?.closest('.paneo-toast-viewport')) {
     return
   }
 
@@ -25,7 +25,7 @@ useHead(() => ({
 }))
 
 useSeoMeta({
-  title: 'fFile',
+  title: 'paneo',
   description: t('app.description')
 })
 </script>
@@ -39,7 +39,7 @@ useSeoMeta({
       max: 5,
       expand: true,
       ui: {
-        viewport: 'ffile-toast-viewport !bottom-20'
+        viewport: 'paneo-toast-viewport !bottom-20'
       }
     }"
   >

@@ -3,7 +3,7 @@ import { dirname } from 'node:path'
 import { getHeader, getQuery, readRawBody } from 'h3'
 import { normalizeUploadFilePath, resolveWithinRoot } from '~~/server/utils/file-manager'
 
-const TEMP_UPLOAD_DIR = '.ffile-upload-tmp'
+const TEMP_UPLOAD_DIR = '.paneo-upload-tmp'
 
 function parsePositiveInt(value: string | undefined, field: string) {
   const parsed = Number.parseInt(value || '', 10)
