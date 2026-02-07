@@ -1,10 +1,37 @@
-import { createReadStream } from 'node:fs'
 import { extname } from 'node:path'
 import { open, stat } from 'node:fs/promises'
-import { getQuery, setHeader, sendStream } from 'h3'
+import { getQuery } from 'h3'
 import { resolveWithinRoot } from '~~/server/utils/file-manager'
 
 const MIME_BY_EXT: Record<string, string> = {
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+  '.json': 'application/json',
+  '.yaml': 'text/yaml',
+  '.yml': 'text/yaml',
+  '.xml': 'application/xml',
+  '.csv': 'text/csv',
+  '.log': 'text/plain',
+  '.ini': 'text/plain',
+  '.conf': 'text/plain',
+  '.toml': 'text/plain',
+  '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
+  '.ts': 'text/plain',
+  '.vue': 'text/plain',
+  '.css': 'text/css',
+  '.html': 'text/html',
+  '.htm': 'text/html',
+  '.sh': 'text/plain',
+  '.py': 'text/plain',
+  '.go': 'text/plain',
+  '.rs': 'text/plain',
+  '.java': 'text/plain',
+  '.c': 'text/plain',
+  '.cpp': 'text/plain',
+  '.h': 'text/plain',
+  '.hpp': 'text/plain',
+  '.sql': 'text/plain',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
@@ -27,32 +54,7 @@ const MIME_BY_EXT: Record<string, string> = {
   '.m4a': 'audio/mp4',
   '.flac': 'audio/flac',
   '.aac': 'audio/aac',
-  '.pdf': 'application/pdf',
-  '.txt': 'text/plain; charset=utf-8',
-  '.md': 'text/markdown; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.yaml': 'text/yaml; charset=utf-8',
-  '.yml': 'text/yaml; charset=utf-8',
-  '.xml': 'application/xml; charset=utf-8',
-  '.csv': 'text/csv; charset=utf-8',
-  '.log': 'text/plain; charset=utf-8',
-  '.ini': 'text/plain; charset=utf-8',
-  '.conf': 'text/plain; charset=utf-8',
-  '.toml': 'text/plain; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.ts': 'text/plain; charset=utf-8',
-  '.vue': 'text/plain; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.html': 'text/html; charset=utf-8',
-  '.sh': 'text/plain; charset=utf-8',
-  '.py': 'text/plain; charset=utf-8',
-  '.go': 'text/plain; charset=utf-8',
-  '.rs': 'text/plain; charset=utf-8',
-  '.java': 'text/plain; charset=utf-8',
-  '.c': 'text/plain; charset=utf-8',
-  '.cpp': 'text/plain; charset=utf-8',
-  '.h': 'text/plain; charset=utf-8'
+  '.pdf': 'application/pdf'
 }
 
 async function detectMimeByContent(absPath: string) {
@@ -64,10 +66,18 @@ async function detectMimeByContent(absPath: string) {
     const buffer = sample.subarray(0, bytesRead)
 
     const isBinary = buffer.includes(0)
-    return isBinary ? 'application/octet-stream' : 'text/plain; charset=utf-8'
+    return isBinary ? 'application/octet-stream' : 'text/plain'
   } finally {
     await handle.close()
   }
+}
+
+function isTextMime(mimeType: string) {
+  return mimeType.startsWith('text/')
+    || mimeType === 'application/json'
+    || mimeType === 'application/xml'
+    || mimeType === 'application/javascript'
+    || mimeType === 'text/javascript'
 }
 
 export default defineEventHandler(async (event) => {
@@ -87,8 +97,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const ext = extname(target.absPath).toLowerCase()
-  const mime = MIME_BY_EXT[ext] || await detectMimeByContent(target.absPath)
-  setHeader(event, 'content-type', mime)
+  const mimeType = MIME_BY_EXT[ext] || await detectMimeByContent(target.absPath)
 
-  return sendStream(event, createReadStream(target.absPath))
+  return {
+    path: target.relativePath,
+    mimeType,
+    isText: isTextMime(mimeType)
+  }
 })

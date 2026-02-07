@@ -293,6 +293,9 @@ export function useFileManagerPanels() {
       if (options?.preferredSelectedPath) {
         const preferred = panel.entries.find(entry => entry.path === options.preferredSelectedPath)
         panel.selectedKey = preferred?.key || panel.entries[0]?.key || null
+      } else if (typeof options?.preferredSelectedIndex === 'number') {
+        const safeIndex = Math.max(0, Math.min(options.preferredSelectedIndex, panel.entries.length - 1))
+        panel.selectedKey = panel.entries[safeIndex]?.key || null
       } else {
         panel.selectedKey = panel.entries[0]?.key || null
       }
@@ -511,6 +514,10 @@ export function useFileManagerPanels() {
     activePanelId.value = activePanelId.value === 'left' ? 'right' : 'left'
   }
 
+  function getSelectedIndex(panel: PanelState) {
+    return selectedIndex(panel)
+  }
+
   return {
     roots,
     rootsLoading,
@@ -530,6 +537,7 @@ export function useFileManagerPanels() {
     formatItemsCount,
     pathParts,
     canGoBack,
+    getSelectedIndex,
     setListRef,
     moveSelection,
     moveSelectionByPage,

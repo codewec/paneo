@@ -23,6 +23,15 @@ export function useFileManagerApi() {
     })
   }
 
+  async function fetchMeta(rootId: string, path: string) {
+    return await $fetch<{ path: string, mimeType: string, isText: boolean }>('/api/fs/meta', {
+      query: {
+        rootId,
+        path
+      }
+    })
+  }
+
   async function writeText(rootId: string, path: string, content: string) {
     return await $fetch('/api/fs/write', {
       method: 'POST',
@@ -82,6 +91,7 @@ export function useFileManagerApi() {
   return {
     fetchRoots,
     fetchList,
+    fetchMeta,
     readText,
     writeText,
     mkdir,

@@ -44,4 +44,5 @@ export interface PanelState {
 
 export interface LoadPanelOptions {
   preferredSelectedPath?: string | null
+  preferredSelectedIndex?: number | null
 }

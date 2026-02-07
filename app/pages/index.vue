@@ -40,7 +40,7 @@ const {
   viewerOpen,
   viewerTitle,
   viewerUrl,
-  viewerIsImage,
+  viewerMode,
   editorOpen,
   editorTitle,
   editorContent,
@@ -244,8 +244,14 @@ await initialize()
 
     <UModal v-model:open="viewerOpen" :title="viewerTitle" :ui="{ content: 'max-w-4xl' }">
       <template #body>
-        <template v-if="viewerIsImage">
+        <template v-if="viewerMode === 'image'">
           <img :src="viewerUrl" alt="preview" class="max-h-[75vh] w-full object-contain" />
+        </template>
+        <template v-else-if="viewerMode === 'video'">
+          <video :src="viewerUrl" controls class="max-h-[75vh] w-full" />
+        </template>
+        <template v-else-if="viewerMode === 'audio'">
+          <audio :src="viewerUrl" controls class="w-full" />
         </template>
         <template v-else>
           <iframe :src="viewerUrl" class="h-[75vh] w-full rounded" />
@@ -253,11 +259,22 @@ await initialize()
       </template>
     </UModal>
 
-    <UModal v-model:open="editorOpen" :title="t('modal.editor', { name: editorTitle })" :ui="{ content: 'max-w-5xl' }">
+    <UModal
+      v-model:open="editorOpen"
+      :title="t('modal.editor', { name: editorTitle })"
+      :ui="{
+        content: 'max-w-5xl h-[70vh] overflow-hidden flex flex-col',
+        body: 'flex-1 min-h-0 overflow-hidden p-4'
+      }"
+    >
       <template #body>
-        <div class="space-y-3">
-          <UTextarea v-model="editorContent" :rows="18" autoresize class="font-mono" />
-          <div class="flex justify-end">
+        <div class="flex h-full min-h-0 flex-col gap-3">
+          <UTextarea
+            v-model="editorContent"
+            class="flex-1 min-h-0 font-mono"
+            :ui="{ root: 'h-full', base: 'h-full resize-none overflow-auto' }"
+          />
+          <div class="shrink-0 flex justify-end">
             <UButton :loading="editorSaving" :label="t('buttons.save')" icon="i-lucide-save" @click="saveEditor" />
           </div>
         </div>
