@@ -405,7 +405,7 @@ watch(locale, (value) => {
             <div
               :ref="(el) => setListRef(panel.id, el)"
               :class="[
-                'h-full space-y-1 overflow-auto',
+                'h-full space-y-1 overflow-auto -mr-2 pr-2',
                 activePanelId !== panel.id ? 'opacity-65' : ''
               ]"
             >
