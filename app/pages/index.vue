@@ -15,6 +15,7 @@ if ((savedLocale === 'ru' || savedLocale === 'en') && savedLocale !== locale.val
 }
 
 const settingsOpen = ref(false)
+const isClientMounted = ref(false)
 const createDirInputRef = ref<{ $el?: HTMLElement } | null>(null)
 const renameInputRef = ref<{ $el?: HTMLElement } | null>(null)
 
@@ -80,7 +81,6 @@ const {
   deleteConfirmOpen,
   deleteTarget,
   deleteLoading,
-  canView,
   canEdit,
   canCopy,
   canRename,
@@ -103,14 +103,28 @@ const {
   createDir
 } = useFileManagerActions(panels)
 
+const activePanelSelectedEntry = computed(() => {
+  const panel = activePanel.value
+  if (!panel.selectedKey) {
+    return null
+  }
+
+  return panel.entries.find(entry => entry.key === panel.selectedKey) || null
+})
+
 const actionContext = computed(() => {
+  const selectedKind = activePanelSelectedEntry.value?.kind
+  const isFileSelected = selectedKind === 'file'
+  const hasFileSystemEntrySelected = selectedKind === 'file' || selectedKind === 'dir'
+  const hasOpenedRoot = !!activePanel.value.rootId
+
   return {
-    canView: canView.value,
-    canEdit: canEdit.value,
-    canCopy: canCopy.value,
-    canRename: canRename.value,
-    canCreateDir: canCreateDir.value,
-    canDelete: canDelete.value
+    canView: isClientMounted.value && isFileSelected,
+    canEdit: isClientMounted.value && isFileSelected && canEdit.value,
+    canCopy: isClientMounted.value && hasFileSystemEntrySelected && canCopy.value,
+    canRename: isClientMounted.value && hasFileSystemEntrySelected && canRename.value,
+    canCreateDir: isClientMounted.value && hasOpenedRoot && hasFileSystemEntrySelected && canCreateDir.value,
+    canDelete: isClientMounted.value && hasFileSystemEntrySelected && canDelete.value
   }
 })
 const copyProgressStatusLabel = computed(() => {
@@ -289,6 +303,10 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleCopyConfirmEnter, true)
 })
 
+onMounted(() => {
+  isClientMounted.value = true
+})
+
 watch(locale, (value) => {
   localeCookie.value = value
 })
@@ -453,7 +471,8 @@ await initialize()
       </div>
 
       <UCard :ui="{ body: 'p-2' }">
-        <div class="grid grid-cols-2 gap-2 md:grid-cols-7">
+        <ClientOnly>
+          <div class="grid grid-cols-2 gap-2 md:grid-cols-7">
           <UButton
             :label="t('hotkeys.f1Settings')"
             icon="i-lucide-settings"
@@ -516,7 +535,11 @@ await initialize()
             :disabled="!actionContext.canDelete"
             @click="removeSelected"
           />
-        </div>
+          </div>
+          <template #fallback>
+            <div class="h-10" />
+          </template>
+        </ClientOnly>
       </UCard>
     </div>
 
