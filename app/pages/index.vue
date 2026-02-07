@@ -285,6 +285,10 @@ onMounted(() => {
   if ((savedLocale === 'ru' || savedLocale === 'en') && savedLocale !== locale.value) {
     void setLocale(savedLocale)
   }
+
+  void (async () => {
+    await initialize()
+  })()
 })
 
 watch(locale, (value) => {
@@ -292,12 +296,11 @@ watch(locale, (value) => {
     localStorage.setItem(LOCALE_STORAGE_KEY, value)
   }
 })
-
-await initialize()
 </script>
 
 <template>
-  <div class="h-[100dvh] w-full overflow-hidden bg-default p-2">
+  <ClientOnly>
+    <div class="h-[100dvh] w-full overflow-hidden bg-default p-2">
     <div class="flex h-full flex-col gap-2">
       <UAlert
         v-if="globalError"
@@ -850,5 +853,9 @@ await initialize()
         {{ t('loading') }}
       </UBadge>
     </div>
-  </div>
+    </div>
+    <template #fallback>
+      <div class="h-[100dvh] w-full bg-default p-2" />
+    </template>
+  </ClientOnly>
 </template>
