@@ -1,6 +1,6 @@
 import { createReadStream, createWriteStream } from 'node:fs'
 import { access, cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
-import { basename, isAbsolute, normalize, relative, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, normalize, relative, resolve, sep } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
@@ -244,6 +244,84 @@ export async function createFile(rootId: string, basePath: string | null | undef
   const target = resolveWithinRoot(rootId, targetPath)
 
   await writeFile(target.absPath, '', { encoding: 'utf-8', flag: 'wx' })
+}
+
+export function normalizeUploadFilePath(rawPath: string) {
+  const normalized = normalizeRelativePath(rawPath.replaceAll('\\', '/').replace(/^\/+/, ''))
+  if (!normalized) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid uploaded file path' })
+  }
+
+  return normalized
+}
+
+export async function uploadFiles(rootId: string, basePath: string | null | undefined, files: Array<{ relativePath: string, data: Uint8Array }>) {
+  if (!files.length) {
+    return { uploaded: 0 }
+  }
+
+  const base = resolveWithinRoot(rootId, basePath)
+  const baseStats = await stat(base.absPath)
+  if (!baseStats.isDirectory()) {
+    throw createError({ statusCode: 400, statusMessage: 'Base path is not a directory' })
+  }
+
+  let uploaded = 0
+  for (const file of files) {
+    const relativePath = normalizeUploadFilePath(file.relativePath)
+    const targetPath = base.relativePath ? `${base.relativePath}/${relativePath}` : relativePath
+    const target = resolveWithinRoot(rootId, targetPath)
+
+    await mkdir(dirname(target.absPath), { recursive: true })
+    await writeFile(target.absPath, file.data)
+    uploaded += 1
+  }
+
+  return { uploaded }
+}
+
+export async function importLocalPaths(rootId: string, basePath: string | null | undefined, sourcePaths: string[]) {
+  if (!sourcePaths.length) {
+    return { imported: 0 }
+  }
+
+  const base = resolveWithinRoot(rootId, basePath)
+  const baseStats = await stat(base.absPath)
+  if (!baseStats.isDirectory()) {
+    throw createError({ statusCode: 400, statusMessage: 'Base path is not a directory' })
+  }
+
+  let imported = 0
+  for (const sourcePath of sourcePaths) {
+    const normalizedSourcePath = sourcePath.trim()
+    if (!normalizedSourcePath) {
+      continue
+    }
+
+    if (!isAbsolute(normalizedSourcePath)) {
+      throw createError({ statusCode: 400, statusMessage: `Source path must be absolute: ${normalizedSourcePath}` })
+    }
+
+    const sourceAbsPath = resolve(normalizedSourcePath)
+    const sourceStats = await stat(sourceAbsPath)
+    const targetName = basename(sourceAbsPath)
+    if (!targetName) {
+      throw createError({ statusCode: 400, statusMessage: `Invalid source path: ${normalizedSourcePath}` })
+    }
+
+    const targetPath = base.relativePath ? `${base.relativePath}/${targetName}` : targetName
+    const target = resolveWithinRoot(rootId, targetPath)
+
+    await rm(target.absPath, { recursive: true, force: true })
+    await cp(sourceAbsPath, target.absPath, {
+      recursive: sourceStats.isDirectory(),
+      force: true,
+      errorOnExist: false
+    })
+    imported += 1
+  }
+
+  return { imported }
 }
 
 async function ensureDestinationFree(absPath: string) {

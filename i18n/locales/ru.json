@@ -13,10 +13,12 @@
     "items_one": "{count} элемент",
     "items_few": "{count} элемента",
     "items_many": "{count} элементов",
-    "items_other": "{count} элемента"
+    "items_other": "{count} элемента",
+    "dropUpload": "Перетащите файлы или папки сюда"
   },
   "hotkeys": {
     "f1Settings": "F1 Настройки",
+    "f2Upload": "F2 Загрузка",
     "f3View": "F3 Просмотр",
     "f4Edit": "F4 Редактировать",
     "f5Copy": "F5 Копировать",
@@ -33,13 +35,17 @@
     "copy": "Копирование",
     "copyOrMove": "Копирование / Перемещение",
     "copyProgress": "Прогресс копирования",
-    "rename": "Переименование"
+    "rename": "Переименование",
+    "upload": "Загрузка",
+    "uploadProgress": "Прогресс загрузки"
   },
   "fields": {
     "name": "Имя",
     "file": "Файл",
     "folderName": "Имя папки",
-    "newName": "Новое имя"
+    "newName": "Новое имя",
+    "chooseFiles": "Выберите файлы",
+    "chooseFolders": "Выберите папки"
   },
   "buttons": {
     "save": "Сохранить",
@@ -48,10 +54,26 @@
     "delete": "Удалить",
     "copy": "Копировать",
     "cancelCopy": "Отменить копирование",
+    "cancelUpload": "Отменить загрузку",
     "minimize": "Свернуть",
     "open": "Открыть",
     "rename": "Переименовать",
-    "refresh": "Обновить"
+    "refresh": "Обновить",
+    "upload": "Загрузить"
+  },
+  "upload": {
+    "selectedCount_one": "Выбрано: {count} элемент",
+    "selectedCount_few": "Выбрано: {count} элемента",
+    "selectedCount_many": "Выбрано: {count} элементов",
+    "selectedCount_other": "Выбрано: {count} элемента",
+    "to": "Куда",
+    "preparing": "Подготовка загрузки...",
+    "status": {
+      "running": "Выполняется",
+      "completed": "Завершено",
+      "failed": "Ошибка",
+      "canceled": "Отменено"
+    }
   },
   "copy": {
     "from": "Откуда",
@@ -89,6 +111,9 @@
     "copySkipped": "Файл уже существует, копирование пропущено",
     "copyCanceled": "Копирование отменено",
     "copyInProgress": "Копирование выполняется",
+    "uploadInProgress": "Загрузка выполняется",
+    "uploadCanceled": "Загрузка отменена",
+    "dropNoFiles": "Не удалось получить файлы из перетаскивания",
     "moveFailed": "Ошибка перемещения",
     "copied": "Скопировано",
     "moved": "Перемещено",
@@ -100,7 +125,9 @@
     "createFolderFailed": "Ошибка создания папки",
     "createFileFailed": "Ошибка создания файла",
     "folderCreated": "Папка создана",
-    "fileCreated": "Файл создан"
+    "fileCreated": "Файл создан",
+    "uploadFailed": "Ошибка загрузки",
+    "uploaded": "Загрузка завершена"
   },
   "confirm": {
     "delete": "Удалить {name}?",

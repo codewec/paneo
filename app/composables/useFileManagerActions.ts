@@ -18,6 +18,7 @@ interface PanelsContext {
 }
 
 type CopyTaskStatus = 'running' | 'completed' | 'failed' | 'canceled'
+type UploadTaskStatus = 'running' | 'completed' | 'failed' | 'canceled'
 
 interface CopyTask {
   id: string
@@ -40,6 +41,23 @@ interface CopyTask {
   minimized: boolean
   toastId: string | number | null
   polling: boolean
+}
+
+interface UploadTask {
+  id: string
+  toRootId: string
+  toDirPath: string
+  toLabel: string
+  status: UploadTaskStatus
+  totalFiles: number
+  processedFiles: number
+  totalBytes: number
+  uploadedBytes: number
+  currentFile: string
+  error: string
+  minimized: boolean
+  toastId: string | number | null
+  controller: AbortController
 }
 
 interface CopyRequestItem {
@@ -97,7 +115,7 @@ function getParentPath(path: string) {
 export function useFileManagerActions(panels: PanelsContext) {
   const api = useFileManagerApi()
   const toast = useAppToast()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   const viewerOpen = ref(false)
   const viewerTitle = ref('')
@@ -130,6 +148,9 @@ export function useFileManagerActions(panels: PanelsContext) {
   const copyTasks = ref<CopyTask[]>([])
   const copyProgressOpen = ref(false)
   const activeCopyTaskId = ref<string | null>(null)
+  const uploadTasks = ref<UploadTask[]>([])
+  const uploadProgressOpen = ref(false)
+  const activeUploadTaskId = ref<string | null>(null)
 
   const deleteConfirmOpen = ref(false)
   const deleteTargets = ref<Array<{ rootId: string, path: string, name: string }>>([])
@@ -227,6 +248,7 @@ export function useFileManagerActions(panels: PanelsContext) {
   })
 
   const canCreateDir = computed(() => !actionsDisabledByRootList.value)
+  const canUpload = computed(() => !actionsDisabledByRootList.value)
   const canRename = computed(() => {
     if (actionsDisabledByRootList.value) {
       return false
@@ -262,6 +284,37 @@ export function useFileManagerActions(panels: PanelsContext) {
 
     return Math.max(0, Math.min(100, Math.round((task.processedFiles / task.totalFiles) * 100)))
   })
+
+  const activeUploadTask = computed(() => {
+    if (!activeUploadTaskId.value) {
+      return null
+    }
+
+    return uploadTasks.value.find(task => task.id === activeUploadTaskId.value) || null
+  })
+
+  const activeUploadProgressPercent = computed(() => {
+    const task = activeUploadTask.value
+    if (!task) {
+      return null
+    }
+
+    if (task.totalBytes > 0) {
+      return Math.max(0, Math.min(100, Math.round((task.uploadedBytes / task.totalBytes) * 100)))
+    }
+
+    if (task.totalFiles > 0) {
+      return Math.max(0, Math.min(100, Math.round((task.processedFiles / task.totalFiles) * 100)))
+    }
+
+    return 0
+  })
+
+  function formatUploadSelectedCount(count: number) {
+    const localeCode = locale.value === 'ru' ? 'ru' : 'en'
+    const category = new Intl.PluralRules(localeCode).select(count)
+    return t(`upload.selectedCount_${category}`, { count })
+  }
 
   let metaRequestId = 0
   watch(selectedFileMetaKey, async (key) => {
@@ -339,6 +392,15 @@ export function useFileManagerActions(panels: PanelsContext) {
     task.toastId = null
   }
 
+  function removeUploadTaskToast(task: UploadTask) {
+    if (!task.toastId) {
+      return
+    }
+
+    toast.remove(task.toastId)
+    task.toastId = null
+  }
+
   function openCopyTask(taskId: string) {
     const task = copyTasks.value.find(item => item.id === taskId)
     if (!task) {
@@ -358,6 +420,17 @@ export function useFileManagerActions(panels: PanelsContext) {
     }
 
     return Math.max(0, Math.min(100, Math.round((task.processedFiles / task.totalFiles) * 100)))
+  }
+
+  function uploadTaskPercent(task: UploadTask) {
+    if (task.totalBytes > 0) {
+      return Math.max(0, Math.min(100, Math.round((task.uploadedBytes / task.totalBytes) * 100)))
+    }
+    if (task.totalFiles > 0) {
+      return Math.max(0, Math.min(100, Math.round((task.processedFiles / task.totalFiles) * 100)))
+    }
+
+    return 0
   }
 
   function upsertMinimizedTaskToast(task: CopyTask) {
@@ -409,6 +482,68 @@ export function useFileManagerActions(panels: PanelsContext) {
     })
   }
 
+  function openUploadTask(taskId: string) {
+    const task = uploadTasks.value.find(item => item.id === taskId)
+    if (!task) {
+      return
+    }
+
+    task.minimized = false
+    removeUploadTaskToast(task)
+
+    activeUploadTaskId.value = task.id
+    uploadProgressOpen.value = true
+  }
+
+  function upsertMinimizedUploadTaskToast(task: UploadTask) {
+    const percent = uploadTaskPercent(task)
+    const descriptionText = task.currentFile
+      ? `${percent}% · ${task.currentFile}`
+      : `${percent}%`
+    const description = h('div', { class: 'space-y-2' }, [
+      h('p', { class: 'text-xs text-muted' }, descriptionText),
+      h(UProgress, {
+        modelValue: percent,
+        size: 'xs',
+        color: 'info'
+      })
+    ])
+
+    if (!task.toastId) {
+      const added = toast.add({
+        title: t('toasts.uploadInProgress'),
+        description,
+        color: 'info',
+        duration: 0,
+        progress: false,
+        close: false,
+        onClick: () => openUploadTask(task.id),
+        actions: [{
+          label: t('buttons.open'),
+          color: 'info',
+          variant: 'ghost',
+          onClick: () => openUploadTask(task.id)
+        }]
+      })
+      task.toastId = added.id
+      return
+    }
+
+    toast.update(task.toastId, {
+      title: t('toasts.uploadInProgress'),
+      description,
+      close: false,
+      progress: false,
+      onClick: () => openUploadTask(task.id),
+      actions: [{
+        label: t('buttons.open'),
+        color: 'info',
+        variant: 'ghost',
+        onClick: () => openUploadTask(task.id)
+      }]
+    })
+  }
+
   function focusAnotherRunningTaskOrClose() {
     const nextRunning = copyTasks.value.find(task => task.status === 'running' && !task.minimized)
     if (!nextRunning) {
@@ -419,6 +554,18 @@ export function useFileManagerActions(panels: PanelsContext) {
 
     activeCopyTaskId.value = nextRunning.id
     copyProgressOpen.value = true
+  }
+
+  function focusAnotherRunningUploadTaskOrClose() {
+    const nextRunning = uploadTasks.value.find(task => task.status === 'running' && !task.minimized)
+    if (!nextRunning) {
+      uploadProgressOpen.value = false
+      activeUploadTaskId.value = null
+      return
+    }
+
+    activeUploadTaskId.value = nextRunning.id
+    uploadProgressOpen.value = true
   }
 
   async function refreshDestinationIfVisible(toRootId: string, toDirPath: string, targetBasePath: string) {
@@ -435,6 +582,20 @@ export function useFileManagerActions(panels: PanelsContext) {
           preferredSelectedIndex: currentIndex >= 0 ? currentIndex : null
         })
       }
+    }
+  }
+
+  async function refreshUploadDestinationIfVisible(toRootId: string, toDirPath: string) {
+    for (const panel of [panels.leftPanel, panels.rightPanel]) {
+      const isVisibleTarget = panel.rootId === toRootId && isSameOrChildPath(panel.path, toDirPath)
+      if (!isVisibleTarget) {
+        continue
+      }
+
+      const currentIndex = panels.getSelectedIndex(panel)
+      await panels.loadPanel(panel, {
+        preferredSelectedIndex: currentIndex >= 0 ? currentIndex : null
+      })
     }
   }
 
@@ -488,6 +649,32 @@ export function useFileManagerActions(panels: PanelsContext) {
 
     if (activeCopyTaskId.value === task.id) {
       focusAnotherRunningTaskOrClose()
+    }
+  }
+
+  async function finalizeUploadTask(task: UploadTask) {
+    removeUploadTaskToast(task)
+
+    if (task.status === 'completed') {
+      toast.add({
+        title: t('toasts.uploaded'),
+        description: formatUploadSelectedCount(task.totalFiles),
+        color: 'success'
+      })
+    } else if (task.status === 'canceled') {
+      toast.add({ title: t('toasts.uploadCanceled'), color: 'warning' })
+    } else {
+      toast.add({
+        title: t('toasts.uploadFailed'),
+        description: task.error || undefined,
+        color: 'error'
+      })
+    }
+
+    await refreshUploadDestinationIfVisible(task.toRootId, task.toDirPath)
+
+    if (activeUploadTaskId.value === task.id) {
+      focusAnotherRunningUploadTaskOrClose()
     }
   }
 
@@ -1008,6 +1195,106 @@ export function useFileManagerActions(panels: PanelsContext) {
     }
   }
 
+  function uploadSelected(files: File[]) {
+    return startUploadForPanel(panels.activePanel.value, files)
+  }
+
+  function startUploadForPanel(panel: PanelState, files: File[]) {
+    if (!panel.rootId || !files.length) {
+      return false
+    }
+
+    const taskId = generateTaskId()
+    const rootName = panels.getRootName(panel.rootId)
+    const task = reactive<UploadTask>({
+      id: taskId,
+      toRootId: panel.rootId,
+      toDirPath: panel.path,
+      toLabel: panel.path ? `${rootName}:/${panel.path}` : `${rootName}:/`,
+      status: 'running',
+      totalFiles: files.length,
+      processedFiles: 0,
+      totalBytes: files.reduce((sum, file) => sum + file.size, 0),
+      uploadedBytes: 0,
+      currentFile: '',
+      error: '',
+      minimized: false,
+      toastId: null,
+      controller: new AbortController()
+    })
+
+    uploadTasks.value.unshift(task)
+    openUploadTask(task.id)
+
+    void (async () => {
+      try {
+        let previousProcessedFiles = 0
+        await api.upload(panel.rootId!, panel.path, files, {
+          signal: task.controller.signal,
+          onProgress: (progress) => {
+            task.totalFiles = progress.totalFiles
+            task.processedFiles = progress.processedFiles
+            task.currentFile = progress.currentFile
+            task.totalBytes = progress.totalBytes
+            task.uploadedBytes = progress.uploadedBytes
+
+            if (task.minimized) {
+              upsertMinimizedUploadTaskToast(task)
+            }
+
+            if (progress.processedFiles > previousProcessedFiles) {
+              previousProcessedFiles = progress.processedFiles
+              void refreshUploadDestinationIfVisible(task.toRootId, task.toDirPath)
+            }
+          }
+        })
+
+        task.status = 'completed'
+        task.error = ''
+        await finalizeUploadTask(task)
+      } catch (error) {
+        const err = error as { name?: string }
+        if (err?.name === 'AbortError') {
+          task.status = 'canceled'
+          task.error = ''
+        } else {
+          task.status = 'failed'
+          task.error = getErrorMessage(error)
+        }
+
+        await finalizeUploadTask(task)
+      }
+    })()
+
+    return true
+  }
+
+  function minimizeActiveUploadTask() {
+    const task = activeUploadTask.value
+    if (!task) {
+      uploadProgressOpen.value = false
+      activeUploadTaskId.value = null
+      return
+    }
+
+    task.minimized = true
+    uploadProgressOpen.value = false
+    activeUploadTaskId.value = null
+
+    if (task.status === 'running') {
+      upsertMinimizedUploadTaskToast(task)
+    }
+  }
+
+  function cancelActiveUploadTask() {
+    const task = activeUploadTask.value
+    if (!task || task.status !== 'running') {
+      return
+    }
+
+    task.controller.abort()
+  }
+
   return {
     viewerOpen,
     viewerTitle,
@@ -1028,6 +1315,9 @@ export function useFileManagerActions(panels: PanelsContext) {
     copyProgressOpen,
     activeCopyTask,
     activeCopyProgressPercent,
+    uploadProgressOpen,
+    activeUploadTask,
+    activeUploadProgressPercent,
     renameOpen,
     renameName,
     renameLoading,
@@ -1045,6 +1335,7 @@ export function useFileManagerActions(panels: PanelsContext) {
     canRename,
     canDelete,
     canCreateDir,
+    canUpload,
     openViewer,
     openEditor,
     saveEditor,
@@ -1053,6 +1344,9 @@ export function useFileManagerActions(panels: PanelsContext) {
     cancelActiveCopyTask,
     minimizeActiveCopyTask,
     openCopyTask,
+    cancelActiveUploadTask,
+    minimizeActiveUploadTask,
+    openUploadTask,
     closeCopyConfirm,
     openRename,
     confirmRename,
@@ -1060,6 +1354,8 @@ export function useFileManagerActions(panels: PanelsContext) {
     removeSelected,
     confirmRemoveSelected,
     openCreateDir,
-    createDir
+    createDir,
+    uploadSelected,
+    startUploadForPanel
   }
 }

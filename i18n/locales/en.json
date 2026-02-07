@@ -11,10 +11,12 @@
     "mirrorLeft": "Mirror left panel",
     "back": "Back",
     "items_one": "{count} item",
-    "items_other": "{count} items"
+    "items_other": "{count} items",
+    "dropUpload": "Drop files or folders here"
   },
   "hotkeys": {
     "f1Settings": "F1 Settings",
+    "f2Upload": "F2 Upload",
     "f3View": "F3 View",
     "f4Edit": "F4 Edit",
     "f5Copy": "F5 Copy",
@@ -31,13 +33,17 @@
     "copy": "Copy",
     "copyOrMove": "Copy / Move",
     "copyProgress": "Copy Progress",
-    "rename": "Rename"
+    "rename": "Rename",
+    "upload": "Upload",
+    "uploadProgress": "Upload Progress"
   },
   "fields": {
     "name": "Name",
     "file": "File",
     "folderName": "Folder name",
-    "newName": "New name"
+    "newName": "New name",
+    "chooseFiles": "Choose files",
+    "chooseFolders": "Choose folders"
   },
   "buttons": {
     "save": "Save",
@@ -46,10 +52,24 @@
     "delete": "Delete",
     "copy": "Copy",
     "cancelCopy": "Cancel Copy",
+    "cancelUpload": "Cancel Upload",
     "minimize": "Minimize",
     "open": "Open",
     "rename": "Rename",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "upload": "Upload"
+  },
+  "upload": {
+    "selectedCount_one": "Selected: {count} item",
+    "selectedCount_other": "Selected: {count} items",
+    "to": "To",
+    "preparing": "Preparing upload...",
+    "status": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "canceled": "Canceled"
+    }
   },
   "copy": {
     "from": "From",
@@ -87,6 +107,9 @@
     "copySkipped": "Target already exists, copy skipped",
     "copyCanceled": "Copy canceled",
     "copyInProgress": "Copy in progress",
+    "uploadInProgress": "Upload in progress",
+    "uploadCanceled": "Upload canceled",
+    "dropNoFiles": "Could not read files from drag and drop",
     "moveFailed": "Move error",
     "copied": "Copied",
     "moved": "Moved",
@@ -98,7 +121,9 @@
     "createFolderFailed": "Create folder error",
     "createFileFailed": "Create file error",
     "folderCreated": "Folder created",
-    "fileCreated": "File created"
+    "fileCreated": "File created",
+    "uploadFailed": "Upload error",
+    "uploaded": "Upload completed"
   },
   "confirm": {
     "delete": "Delete {name}?",

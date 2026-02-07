@@ -1,6 +1,21 @@
 import type { ListResponse, RootItem } from '~/types/file-manager'
 
 export function useFileManagerApi() {
+  const UPLOAD_CHUNK_SIZE = 8 * 1024 * 1024
+
+  interface UploadProgress {
+    totalFiles: number
+    processedFiles: number
+    currentFile: string
+    totalBytes: number
+    uploadedBytes: number
+  }
+
+  interface UploadOptions {
+    signal?: AbortSignal
+    onProgress?: (progress: UploadProgress) => void
+  }
+
   async function fetchRoots() {
     return await $fetch<{ roots: RootItem[] }>('/api/fs/roots')
   }
@@ -61,6 +76,75 @@ export function useFileManagerApi() {
         rootId,
         path,
         name
+      }
+    })
+  }
+
+  async function upload(rootId: string, path: string, files: File[], options?: UploadOptions) {
+    const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
+    let uploadedBytes = 0
+
+    for (const [fileIndex, file] of files.entries()) {
+      const rawRelativePath = (file as File & { webkitRelativePath?: string, __ffileRelativePath?: string }).webkitRelativePath
+      const fallbackRelativePath = (file as File & { __ffileRelativePath?: string }).__ffileRelativePath
+      const relativePath = rawRelativePath || fallbackRelativePath || file.name
+      const uploadId = globalThis.crypto?.randomUUID?.().replaceAll('-', '')
+        || `${Date.now()}${Math.random().toString(36).slice(2, 10)}`
+      const totalChunks = Math.max(1, Math.ceil(file.size / UPLOAD_CHUNK_SIZE))
+
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+        if (options?.signal?.aborted) {
+          const abortError = new Error('Upload canceled')
+          ;(abortError as { name: string }).name = 'AbortError'
+          throw abortError
+        }
+
+        const start = chunkIndex * UPLOAD_CHUNK_SIZE
+        const end = Math.min(file.size, start + UPLOAD_CHUNK_SIZE)
+        const chunk = file.slice(start, end)
+
+        await $fetch<{ ok: true, completed: boolean }>('/api/fs/upload', {
+          method: 'POST',
+          query: {
+            rootId,
+            path
+          },
+          headers: {
+            'x-upload-id': uploadId,
+            'x-file-path': encodeURIComponent(relativePath),
+            'x-chunk-index': String(chunkIndex),
+            'x-total-chunks': String(totalChunks)
+          },
+          body: chunk,
+          signal: options?.signal
+        })
+
+        uploadedBytes += chunk.size
+        options?.onProgress?.({
+          totalFiles: files.length,
+          processedFiles: chunkIndex === totalChunks - 1
+            ? fileIndex + 1
+            : fileIndex,
+          currentFile: relativePath,
+          totalBytes,
+          uploadedBytes
+        })
+      }
+    }
+
+    return {
+      ok: true as const,
+      uploaded: files.length
+    }
+  }
+
+  async function importLocal(rootId: string, path: string, sourcePaths: string[]) {
+    return await $fetch<{ ok: true, imported: number }>('/api/fs/import-local', {
+      method: 'POST',
+      body: {
+        rootId,
+        path,
+        sourcePaths
       }
     })
   }
@@ -165,6 +249,8 @@ export function useFileManagerApi() {
     writeText,
     mkdir,
     createFile,
+    upload,
+    importLocal,
     remove,
     copy,
     startCopy,

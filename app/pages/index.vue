@@ -2,6 +2,7 @@
 const LOCALE_COOKIE_KEY = 'ffile.locale'
 
 const panels = useFileManagerPanels()
+const api = useFileManagerApi()
 const { t, locale, setLocale } = useI18n()
 const colorMode = useColorMode()
 const localeCookie = useCookie<string | null>(LOCALE_COOKIE_KEY, {
@@ -15,9 +16,39 @@ if ((savedLocale === 'ru' || savedLocale === 'en') && savedLocale !== locale.val
 }
 
 const settingsOpen = ref(false)
+const uploadOpen = ref(false)
+const uploadFiles = ref<File[]>([])
+const uploadFolderFiles = ref<File[]>([])
 const isClientMounted = ref(false)
 const createDirInputRef = ref<{ $el?: HTMLElement } | null>(null)
 const renameInputRef = ref<{ $el?: HTMLElement } | null>(null)
+const toast = useAppToast()
+const panelDragOver = reactive<Record<'left' | 'right', boolean>>({
+  left: false,
+  right: false
+})
+const panelDragDepth = reactive<Record<'left' | 'right', number>>({
+  left: 0,
+  right: 0
+})
+
+interface DndEntry {
+  isFile: boolean
+  isDirectory: boolean
+  name: string
+}
+
+interface DndFileEntry extends DndEntry {
+  file: (success: (file: File) => void, error?: (error: unknown) => void) => void
+}
+
+interface DndDirectoryReader {
+  readEntries: (success: (entries: DndEntry[]) => void, error?: (error: unknown) => void) => void
+}
+
+interface DndDirectoryEntry extends DndEntry {
+  createReader: () => DndDirectoryReader
+}
 
 const {
   rootsLoading,
@@ -75,6 +106,9 @@ const {
   copyProgressOpen,
   activeCopyTask,
   activeCopyProgressPercent,
+  uploadProgressOpen,
+  activeUploadTask,
+  activeUploadProgressPercent,
   renameOpen,
   renameName,
   renameLoading,
@@ -90,6 +124,7 @@ const {
   canRename,
   canDelete,
   canCreateDir,
+  canUpload,
   openViewer,
   openEditor,
   saveEditor,
@@ -97,6 +132,8 @@ const {
   confirmCopy,
   cancelActiveCopyTask,
   minimizeActiveCopyTask,
+  cancelActiveUploadTask,
+  minimizeActiveUploadTask,
   openRename,
   confirmRename,
   closeRename,
@@ -104,7 +141,9 @@ const {
   removeSelected,
   confirmRemoveSelected,
   openCreateDir,
-  createDir
+  createDir,
+  uploadSelected,
+  startUploadForPanel
 } = useFileManagerActions(panels)
 
 const activePanelSelectedEntry = computed(() => {
@@ -123,6 +162,7 @@ const canUseFileActions = computed(() => selectedKind.value === 'file')
 const canUseEntryActions = computed(() => selectedKind.value === 'file' || selectedKind.value === 'dir')
 
 const canUseF3 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value)
+const canUseF2 = computed(() => isClientMounted.value && !!activePanel.value.rootId && canUpload.value)
 const canUseF4 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value && canEdit.value)
 const canUseF5 = computed(() => isClientMounted.value && canUseEntryActions.value && canCopy.value)
 const canUseF6 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseEntryActions.value && canRename.value)
@@ -144,6 +184,22 @@ const copyProgressHeader = computed(() => {
 
   return `${copyProgressStatusLabel.value} · ${percent}%`
 })
+const uploadProgressStatusLabel = computed(() => {
+  const status = activeUploadTask.value?.status
+  if (!status) {
+    return t('upload.status.running')
+  }
+
+  return t(`upload.status.${status}`)
+})
+const uploadProgressHeader = computed(() => {
+  const percent = activeUploadProgressPercent.value
+  if (percent === null) {
+    return uploadProgressStatusLabel.value
+  }
+
+  return `${uploadProgressStatusLabel.value} · ${percent}%`
+})
 
 const currentTheme = computed<'light' | 'dark'>({
   get: () => colorMode.preference === 'dark' ? 'dark' : 'light',
@@ -156,6 +212,16 @@ function openSettings() {
   settingsOpen.value = true
 }
 
+function openUploadModal() {
+  if (!canUseF2.value) {
+    return
+  }
+
+  uploadFiles.value = []
+  uploadFolderFiles.value = []
+  uploadOpen.value = true
+}
+
 function setTheme(value: 'light' | 'dark') {
   currentTheme.value = value
 }
@@ -166,6 +232,205 @@ function setLanguage(value: 'ru' | 'en') {
   }
 
   void setLocale(value)
+}
+
+function canHandleDrop(event: DragEvent) {
+  return !!event.dataTransfer
+}
+
+function onPanelDragEnter(panel: typeof leftPanel, event: DragEvent) {
+  event.preventDefault()
+  if (!canHandleDrop(event)) {
+    return
+  }
+
+  selectPanel(panel)
+  panelDragDepth[panel.id] += 1
+  panelDragOver[panel.id] = true
+}
+
+function onPanelDragOver(panel: typeof leftPanel, event: DragEvent) {
+  event.preventDefault()
+  if (!canHandleDrop(event)) {
+    return
+  }
+
+  selectPanel(panel)
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = panel.rootId ? 'copy' : 'none'
+  }
+  panelDragOver[panel.id] = true
+}
+
+function onPanelDragLeave(panel: typeof leftPanel, event: DragEvent) {
+  if (!event.dataTransfer) {
+    return
+  }
+
+  panelDragDepth[panel.id] = Math.max(0, panelDragDepth[panel.id] - 1)
+  if (panelDragDepth[panel.id] === 0) {
+    panelDragOver[panel.id] = false
+  }
+}
+
+function readFileEntry(entry: DndFileEntry, basePath: string) {
+  return new Promise<File[]>((resolve, reject) => {
+    entry.file((file) => {
+      const relativePath = basePath ? `${basePath}/${file.name}` : file.name
+      ;(file as File & { __ffileRelativePath?: string }).__ffileRelativePath = relativePath
+      resolve([file])
+    }, reject)
+  })
+}
+
+function readDirectoryEntries(reader: DndDirectoryReader) {
+  return new Promise<DndEntry[]>((resolve, reject) => {
+    reader.readEntries(resolve, reject)
+  })
+}
+
+async function collectFilesFromEntry(entry: DndEntry, basePath = ''): Promise<File[]> {
+  if (entry.isFile) {
+    return await readFileEntry(entry as DndFileEntry, basePath)
+  }
+
+  if (!entry.isDirectory) {
+    return []
+  }
+
+  const directory = entry as DndDirectoryEntry
+  const reader = directory.createReader()
+  const nextBasePath = basePath ? `${basePath}/${directory.name}` : directory.name
+  const files: File[] = []
+
+  while (true) {
+    const entries = await readDirectoryEntries(reader)
+    if (!entries.length) {
+      break
+    }
+
+    for (const child of entries) {
+      const childFiles = await collectFilesFromEntry(child, nextBasePath)
+      files.push(...childFiles)
+    }
+  }
+
+  return files
+}
+
+async function extractDroppedFiles(event: DragEvent) {
+  const dataTransfer = event.dataTransfer
+  if (!dataTransfer) {
+    return []
+  }
+
+  const plainFiles = Array.from(dataTransfer.files || [])
+
+  try {
+    const items = Array.from(dataTransfer.items || [])
+    if (!items.length) {
+      return plainFiles
+    }
+
+    const entries = items
+      .map((item) => {
+        const webkitItem = item as DataTransferItem & { webkitGetAsEntry?: () => DndEntry | null }
+        return webkitItem.webkitGetAsEntry?.() || null
+      })
+      .filter((entry): entry is DndEntry => !!entry)
+
+    const hasDirectory = entries.some(entry => entry.isDirectory)
+    if (!hasDirectory && plainFiles.length) {
+      return plainFiles
+    }
+
+    if (entries.length) {
+      const files: File[] = []
+      for (const entry of entries) {
+        const collected = await collectFilesFromEntry(entry)
+        files.push(...collected)
+      }
+
+      if (files.length) {
+        return files
+      }
+    }
+
+    if (plainFiles.length) {
+      return plainFiles
+    }
+  } catch {
+    // Fall back to plain FileList below.
+  }
+
+  return plainFiles
+}
+
+function parseDroppedUriList(raw: string) {
+  return raw
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line && !line.startsWith('#'))
+}
+
+function fileUriToLocalPath(uri: string) {
+  try {
+    const url = new URL(uri)
+    if (url.protocol !== 'file:') {
+      return null
+    }
+
+    if (url.hostname && url.hostname !== 'localhost') {
+      return null
+    }
+
+    return decodeURIComponent(url.pathname)
+  } catch {
+    return null
+  }
+}
+
+async function onPanelDrop(panel: typeof leftPanel, event: DragEvent) {
+  event.preventDefault()
+  panelDragDepth[panel.id] = 0
+  panelDragOver[panel.id] = false
+  selectPanel(panel)
+
+  if (!panel.rootId) {
+    toast.add({ title: t('toasts.openSourceFirst'), color: 'warning' })
+    return
+  }
+
+  const uriListRaw = event.dataTransfer?.getData('text/uri-list') || ''
+  const files = await extractDroppedFiles(event)
+  if (!files.length) {
+    const sourcePaths = parseDroppedUriList(uriListRaw)
+      .map(fileUriToLocalPath)
+      .filter((value): value is string => !!value)
+
+    if (sourcePaths.length) {
+      try {
+        await api.importLocal(panel.rootId, panel.path, sourcePaths)
+        toast.add({ title: t('toasts.uploaded'), color: 'success' })
+        const selectedIndex = getSelectedIndex(panel)
+        await loadPanel(panel, {
+          preferredSelectedIndex: selectedIndex >= 0 ? selectedIndex : null
+        })
+      } catch (error) {
+        toast.add({
+          title: t('toasts.uploadFailed'),
+          description: error instanceof Error ? error.message : String(error),
+          color: 'error'
+        })
+      }
+      return
+    }
+
+    toast.add({ title: t('toasts.dropNoFiles'), color: 'warning' })
+    return
+  }
+
+  startUploadForPanel(panel, files)
 }
 
 async function refreshBothPanels() {
@@ -181,12 +446,48 @@ async function refreshBothPanels() {
 function isModalOpen() {
   return viewerOpen.value
     || editorOpen.value
+    || uploadOpen.value
+    || uploadProgressOpen.value
     || createDirOpen.value
     || renameOpen.value
     || copyConfirmOpen.value
     || copyProgressOpen.value
     || deleteConfirmOpen.value
     || settingsOpen.value
+}
+
+const uploadTotalCount = computed(() => uploadFiles.value.length + uploadFolderFiles.value.length)
+const uploadSelectedCountLabel = computed(() => {
+  const localeCode = locale.value === 'ru' ? 'ru' : 'en'
+  const category = new Intl.PluralRules(localeCode).select(uploadTotalCount.value)
+  return t(`upload.selectedCount_${category}`, { count: uploadTotalCount.value })
+})
+
+function updateUploadFiles(event: Event, setTarget: (files: File[]) => void) {
+  const input = event.target as HTMLInputElement | null
+  const files = input?.files ? Array.from(input.files) : []
+  setTarget(files)
+}
+
+function onUploadFilesChange(event: Event) {
+  updateUploadFiles(event, files => uploadFiles.value = files)
+}
+
+function onUploadFoldersChange(event: Event) {
+  updateUploadFiles(event, files => uploadFolderFiles.value = files)
+}
+
+function confirmUpload() {
+  if (uploadTotalCount.value === 0) {
+    return
+  }
+
+  const done = uploadSelected([...uploadFiles.value, ...uploadFolderFiles.value])
+  if (done) {
+    uploadOpen.value = false
+    uploadFiles.value = []
+    uploadFolderFiles.value = []
+  }
 }
 
 function focusCreateDirInput() {
@@ -250,6 +551,7 @@ useFileManagerHotkeys({
   onPageUp: () => moveSelectionByPage(activePanel.value, -1),
   onEnter: () => openSelectedEntry(activePanel.value),
   onF1: openSettings,
+  onF2: openUploadModal,
   onF3: () => canUseF3.value ? openViewer() : Promise.resolve(),
   onF4: () => canUseF4.value ? openEditor() : Promise.resolve(),
   onF5: () => canUseF5.value ? Promise.resolve(openCopy()) : Promise.resolve(),
@@ -329,16 +631,24 @@ await initialize()
 
       <div class="min-h-0 flex-1">
         <div class="grid h-full gap-2 lg:grid-cols-2">
-          <UCard
+          <div
             v-for="panel in [leftPanel, rightPanel]"
             :key="panel.id"
-            :class="[
-              'flex h-full min-h-0 flex-col',
-              activePanelId === panel.id ? 'ring ring-primary-400' : ''
-            ]"
-            :ui="{ header: 'p-2', body: 'min-h-0 flex-1 overflow-hidden p-2', footer: 'p-2' }"
-            @click="selectPanel(panel)"
+            class="h-full min-h-0"
+            @dragenter.stop="onPanelDragEnter(panel, $event)"
+            @dragover.stop="onPanelDragOver(panel, $event)"
+            @dragleave.stop="onPanelDragLeave(panel, $event)"
+            @drop.stop="onPanelDrop(panel, $event)"
           >
+            <UCard
+              :class="[
+                'flex h-full min-h-0 flex-col',
+                activePanelId === panel.id ? 'ring ring-primary-400' : '',
+                panelDragOver[panel.id] ? 'ring-2 ring-primary-500' : ''
+              ]"
+              :ui="{ header: 'p-2', body: 'min-h-0 flex-1 overflow-hidden p-2', footer: 'p-2' }"
+              @click="selectPanel(panel)"
+            >
             <template #header>
               <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
@@ -426,6 +736,18 @@ await initialize()
             />
 
             <div
+              class="mb-2 rounded-md border border-dashed px-3 py-2 text-xs transition"
+              :class="[
+                panelDragOver[panel.id] && panel.rootId
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-default text-muted',
+                !panel.rootId ? 'opacity-50' : ''
+              ]"
+            >
+              {{ t('panel.dropUpload') }}
+            </div>
+
+            <div
               :ref="(el) => setListRef(panel.id, el)"
               :class="[
                 'h-full space-y-1 overflow-auto -mr-2 pr-2',
@@ -476,13 +798,14 @@ await initialize()
                 <span>{{ selectedMtime(panel) ? formatDate(selectedMtime(panel)) : '' }}</span>
               </div>
             </template>
-          </UCard>
+            </UCard>
+          </div>
         </div>
       </div>
 
       <UCard :ui="{ body: 'p-2' }">
         <ClientOnly>
-          <div class="grid grid-cols-2 gap-2 md:grid-cols-7">
+          <div class="grid grid-cols-2 gap-2 md:grid-cols-8">
             <UButton
               :label="t('hotkeys.f1Settings')"
               icon="i-lucide-settings"
@@ -490,6 +813,15 @@ await initialize()
               variant="outline"
               class="justify-center"
               @click="openSettings"
+            />
+            <UButton
+              :label="t('hotkeys.f2Upload')"
+              icon="i-lucide-upload"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF2"
+              @click="openUploadModal"
             />
             <UButton
               :label="t('hotkeys.f3View')"
@@ -612,6 +944,104 @@ await initialize()
               @click="saveEditor"
             />
           </div>
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="uploadOpen"
+      :title="t('modal.upload')"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-sm text-muted">
+              {{ t('fields.chooseFiles') }}
+            </p>
+            <UInput
+              type="file"
+              multiple
+              @change="onUploadFilesChange"
+            />
+          </div>
+          <div class="space-y-1">
+            <p class="text-sm text-muted">
+              {{ t('fields.chooseFolders') }}
+            </p>
+            <UInput
+              type="file"
+              multiple
+              directory
+              webkitdirectory
+              @change="onUploadFoldersChange"
+            />
+          </div>
+          <p class="text-xs text-muted">
+            {{ uploadSelectedCountLabel }}
+          </p>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full gap-2">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :label="t('buttons.cancel')"
+            @click="uploadOpen = false"
+          />
+          <UButton
+            :label="t('buttons.upload')"
+            icon="i-lucide-upload"
+            :disabled="uploadTotalCount === 0"
+            @click="confirmUpload"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="uploadProgressOpen"
+      :title="`${t('modal.uploadProgress')} · ${uploadProgressHeader}`"
+      :dismissible="false"
+      :close="false"
+    >
+      <template #body>
+        <div
+          v-if="activeUploadTask"
+          class="space-y-4"
+        >
+          <div class="space-y-1 text-sm">
+            <p class="text-muted">
+              {{ t('upload.to') }}
+            </p>
+            <p class="font-mono break-all">
+              {{ activeUploadTask.toLabel }}
+            </p>
+          </div>
+
+          <UProgress :model-value="activeUploadProgressPercent" />
+          <div class="text-xs text-muted space-y-1">
+            <p>{{ activeUploadTask.currentFile || t('upload.preparing') }}</p>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full gap-2">
+          <UButton
+            color="warning"
+            variant="outline"
+            :label="t('buttons.cancelUpload')"
+            icon="i-lucide-ban"
+            :disabled="!activeUploadTask || activeUploadTask.status !== 'running'"
+            @click="cancelActiveUploadTask"
+          />
+          <UButton
+            color="neutral"
+            variant="outline"
+            :label="t('buttons.minimize')"
+            icon="i-lucide-minimize-2"
+            @click="minimizeActiveUploadTask"
+          />
         </div>
       </template>
     </UModal>
