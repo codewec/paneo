@@ -1,9 +1,18 @@
 <script setup lang="ts">
-const LOCALE_STORAGE_KEY = 'ffile.locale'
+const LOCALE_COOKIE_KEY = 'ffile.locale'
 
 const panels = useFileManagerPanels()
 const { t, locale, setLocale } = useI18n()
 const colorMode = useColorMode()
+const localeCookie = useCookie<string | null>(LOCALE_COOKIE_KEY, {
+  secure: false,
+  sameSite: 'lax',
+  path: '/'
+})
+const savedLocale = localeCookie.value
+if ((savedLocale === 'ru' || savedLocale === 'en') && savedLocale !== locale.value) {
+  await setLocale(savedLocale)
+}
 
 const settingsOpen = ref(false)
 const createDirInputRef = ref<{ $el?: HTMLElement } | null>(null)
@@ -280,27 +289,15 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleCopyConfirmEnter, true)
 })
 
-onMounted(() => {
-  const savedLocale = localStorage.getItem(LOCALE_STORAGE_KEY)
-  if ((savedLocale === 'ru' || savedLocale === 'en') && savedLocale !== locale.value) {
-    void setLocale(savedLocale)
-  }
-
-  void (async () => {
-    await initialize()
-  })()
-})
-
 watch(locale, (value) => {
-  if (import.meta.client) {
-    localStorage.setItem(LOCALE_STORAGE_KEY, value)
-  }
+  localeCookie.value = value
 })
+
+await initialize()
 </script>
 
 <template>
-  <ClientOnly>
-    <div class="h-[100dvh] w-full overflow-hidden bg-default p-2">
+  <div class="h-[100dvh] w-full overflow-hidden bg-default p-2">
     <div class="flex h-full flex-col gap-2">
       <UAlert
         v-if="globalError"
@@ -364,33 +361,38 @@ watch(locale, (value) => {
                     </template>
                   </template>
                 </div>
-                <div class="flex items-center gap-1">
-                  <UButton
-                    icon="i-lucide-refresh-cw"
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    :title="t('buttons.refresh')"
-                    @click.stop="refreshBothPanels"
-                  />
-                  <UButton
-                    :icon="panel.id === 'left' ? 'i-lucide-panel-right-open' : 'i-lucide-panel-left-open'"
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    :title="panel.id === 'left' ? t('panel.mirrorRight') : t('panel.mirrorLeft')"
-                    @click.stop="mirrorFromOpposite(panel)"
-                  />
-                  <UButton
-                    icon="i-lucide-history"
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    :title="t('panel.back')"
-                    :disabled="!canGoBack(panel)"
-                    @click.stop="goBack(panel)"
-                  />
-                </div>
+                <ClientOnly>
+                  <div class="flex items-center gap-1">
+                    <UButton
+                      icon="i-lucide-refresh-cw"
+                      size="xs"
+                      color="neutral"
+                      variant="ghost"
+                      :title="t('buttons.refresh')"
+                      @click.stop="refreshBothPanels"
+                    />
+                    <UButton
+                      :icon="panel.id === 'left' ? 'i-lucide-panel-right-open' : 'i-lucide-panel-left-open'"
+                      size="xs"
+                      color="neutral"
+                      variant="ghost"
+                      :title="panel.id === 'left' ? t('panel.mirrorRight') : t('panel.mirrorLeft')"
+                      @click.stop="mirrorFromOpposite(panel)"
+                    />
+                    <UButton
+                      icon="i-lucide-history"
+                      size="xs"
+                      color="neutral"
+                      variant="ghost"
+                      :title="t('panel.back')"
+                      :disabled="!canGoBack(panel)"
+                      @click.stop="goBack(panel)"
+                    />
+                  </div>
+                  <template #fallback>
+                    <div class="h-6 w-24 shrink-0" />
+                  </template>
+                </ClientOnly>
               </div>
             </template>
 
@@ -853,9 +855,5 @@ watch(locale, (value) => {
         {{ t('loading') }}
       </UBadge>
     </div>
-    </div>
-    <template #fallback>
-      <div class="h-[100dvh] w-full bg-default p-2" />
-    </template>
-  </ClientOnly>
+  </div>
 </template>

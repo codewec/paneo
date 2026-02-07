@@ -33,7 +33,7 @@ interface StoredPanelsState {
   right?: PanelLocation
 }
 
-const PANELS_STORAGE_KEY = 'ffile.panels'
+const PANELS_COOKIE_KEY = 'ffile.panels'
 
 function getParentPath(path: string) {
   const segments = path.split('/').filter(Boolean)
@@ -77,23 +77,29 @@ export function useFileManagerPanels() {
     return map
   })
 
-  function readStoredPanelsState(): StoredPanelsState | null {
-    if (!import.meta.client) {
-      return null
-    }
+  const panelsCookie = useCookie<StoredPanelsState | null>(PANELS_COOKIE_KEY, {
+    secure: false,
+    sameSite: 'lax',
+    path: '/'
+  })
 
+  function readStoredPanelsState(): StoredPanelsState | null {
     try {
-      const raw = localStorage.getItem(PANELS_STORAGE_KEY)
+      const raw = panelsCookie.value
       if (!raw) {
         return null
       }
 
-      const parsed = JSON.parse(raw) as StoredPanelsState
-      if (!parsed || typeof parsed !== 'object') {
+      if (typeof raw === 'string') {
+        const parsed = JSON.parse(raw) as StoredPanelsState
+        return parsed && typeof parsed === 'object' ? parsed : null
+      }
+
+      if (typeof raw !== 'object') {
         return null
       }
 
-      return parsed
+      return raw
     } catch {
       return null
     }
@@ -111,10 +117,6 @@ export function useFileManagerPanels() {
   }
 
   function savePanelsState() {
-    if (!import.meta.client) {
-      return
-    }
-
     const state: StoredPanelsState = {
       activePanelId: activePanelId.value,
       left: getPanelLocation(leftPanel),
@@ -122,9 +124,9 @@ export function useFileManagerPanels() {
     }
 
     try {
-      localStorage.setItem(PANELS_STORAGE_KEY, JSON.stringify(state))
+      panelsCookie.value = state
     } catch {
-      // Ignore localStorage write errors.
+      // Ignore cookie serialization errors.
     }
   }
 
@@ -496,6 +498,12 @@ export function useFileManagerPanels() {
       loadPanelWithFallback(leftPanel),
       loadPanelWithFallback(rightPanel)
     ])
+
+    // On app load, selection should consistently start from the first row.
+    leftPanel.selectedKey = leftPanel.entries[0]?.key || null
+    rightPanel.selectedKey = rightPanel.entries[0]?.key || null
+    ensureSelectionVisible(leftPanel)
+    ensureSelectionVisible(rightPanel)
 
     savePanelsState()
   }
