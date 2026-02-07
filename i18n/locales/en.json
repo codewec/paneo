@@ -43,7 +43,8 @@
     "cancelCopy": "Cancel Copy",
     "minimize": "Minimize",
     "open": "Open",
-    "rename": "Rename"
+    "rename": "Rename",
+    "refresh": "Refresh"
   },
   "copy": {
     "from": "From",

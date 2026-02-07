@@ -25,9 +25,11 @@ const {
   visibleEntryCount,
   formatItemsCount,
   canGoBack,
+  getSelectedIndex,
   setListRef,
   moveSelection,
   moveSelectionByPage,
+  loadPanel,
   initialize,
   selectPanel,
   openSources,
@@ -138,6 +140,16 @@ function setLanguage(value: 'ru' | 'en') {
   }
 
   void setLocale(value)
+}
+
+async function refreshBothPanels() {
+  const leftIndex = getSelectedIndex(leftPanel)
+  const rightIndex = getSelectedIndex(rightPanel)
+
+  await Promise.all([
+    loadPanel(leftPanel, { preferredSelectedIndex: leftIndex >= 0 ? leftIndex : null }),
+    loadPanel(rightPanel, { preferredSelectedIndex: rightIndex >= 0 ? rightIndex : null })
+  ])
 }
 
 function isModalOpen() {
@@ -333,6 +345,14 @@ await initialize()
                   </template>
                 </div>
                 <div class="flex items-center gap-1">
+                  <UButton
+                    icon="i-lucide-refresh-cw"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    :title="t('buttons.refresh')"
+                    @click.stop="refreshBothPanels"
+                  />
                   <UButton
                     icon="i-lucide-copy"
                     size="xs"
