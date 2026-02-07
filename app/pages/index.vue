@@ -27,6 +27,7 @@ const {
   canGoBack,
   getSelectedIndex,
   setListRef,
+  focusSelectedEntry,
   moveSelection,
   moveSelectionByPage,
   loadPanel,
@@ -180,6 +181,14 @@ function focusRenameInput() {
   })
 }
 
+function focusActivePanelSelection() {
+  nextTick(() => {
+    const active = document.activeElement as HTMLElement | null
+    active?.blur()
+    focusSelectedEntry(activePanel.value)
+  })
+}
+
 async function handleDeleteConfirmEnter(event: KeyboardEvent) {
   if (!deleteConfirmOpen.value || deleteLoading.value) {
     return
@@ -248,6 +257,13 @@ watch(deleteConfirmOpen, (isOpen) => {
   }
 
   window.removeEventListener('keydown', handleDeleteConfirmEnter, true)
+  focusActivePanelSelection()
+})
+
+watch(deleteLoading, (isLoading) => {
+  if (!isLoading && !deleteConfirmOpen.value) {
+    focusActivePanelSelection()
+  }
 })
 
 watch(copyConfirmOpen, (isOpen) => {

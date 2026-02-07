@@ -1,6 +1,23 @@
 <script setup lang="ts">
 const { locale, t } = useI18n()
 
+function handleToastFocus(event: FocusEvent) {
+  const target = event.target as HTMLElement | null
+  if (!target?.closest('.ffile-toast-viewport')) {
+    return
+  }
+
+  target.blur()
+}
+
+onMounted(() => {
+  window.addEventListener('focusin', handleToastFocus, true)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('focusin', handleToastFocus, true)
+})
+
 useHead(() => ({
   meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],
   link: [{ rel: 'icon', href: '/favicon.ico' }],
@@ -22,7 +39,7 @@ useSeoMeta({
       max: 5,
       expand: true,
       ui: {
-        viewport: '!bottom-20'
+        viewport: 'ffile-toast-viewport !bottom-20'
       }
     }"
   >

@@ -245,6 +245,23 @@ export function useFileManagerPanels() {
     })
   }
 
+  function focusSelectedEntry(panel: PanelState) {
+    nextTick(() => {
+      const container = listRefs[panel.id]
+      if (!container || !panel.selectedKey) {
+        return
+      }
+
+      const rawKey = panel.selectedKey
+      const escapedKey = typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+        ? CSS.escape(rawKey)
+        : rawKey.replaceAll('"', '\\"')
+
+      const selectedElement = container.querySelector(`[data-entry-key="${escapedKey}"]`) as HTMLElement | null
+      selectedElement?.focus()
+    })
+  }
+
   function selectByIndex(panel: PanelState, index: number) {
     if (!panel.entries.length) {
       panel.selectedKey = null
@@ -672,6 +689,7 @@ export function useFileManagerPanels() {
     canGoBack,
     getSelectedIndex,
     setListRef,
+    focusSelectedEntry,
     moveSelection,
     moveSelectionByPage,
     loadPanel,
