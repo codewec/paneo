@@ -373,18 +373,20 @@ await initialize()
       :title="t('modal.createFolder')"
     >
       <template #body>
-        <div class="space-y-3">
-          <UInput
-            v-model="createDirName"
-            :placeholder="t('fields.folderName')"
+        <UInput
+          v-model="createDirName"
+          class="w-full"
+          size="xl"
+          :placeholder="t('fields.folderName')"
+        />
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full">
+          <UButton
+            :label="t('buttons.create')"
+            icon="i-lucide-folder-plus"
+            @click="createDir"
           />
-          <div class="flex justify-end">
-            <UButton
-              :label="t('buttons.create')"
-              icon="i-lucide-folder-plus"
-              @click="createDir"
-            />
-          </div>
         </div>
       </template>
     </UModal>
