@@ -7,6 +7,8 @@
     "left": "Левая",
     "right": "Правая",
     "mirror": "Зеркало",
+    "mirrorRight": "Дублировать правую панель",
+    "mirrorLeft": "Дублировать левую панель",
     "back": "Назад",
     "items_one": "{count} элемент",
     "items_few": "{count} элемента",

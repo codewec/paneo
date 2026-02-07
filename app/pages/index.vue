@@ -354,11 +354,11 @@ await initialize()
                     @click.stop="refreshBothPanels"
                   />
                   <UButton
-                    icon="i-lucide-copy"
+                    :icon="panel.id === 'left' ? 'i-lucide-panel-right-open' : 'i-lucide-panel-left-open'"
                     size="xs"
                     color="neutral"
                     variant="ghost"
-                    :title="t('panel.mirror')"
+                    :title="panel.id === 'left' ? t('panel.mirrorRight') : t('panel.mirrorLeft')"
                     @click.stop="mirrorFromOpposite(panel)"
                   />
                   <UButton
