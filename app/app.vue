@@ -7,10 +7,10 @@ useHead(() => ({
   htmlAttrs: { lang: locale.value }
 }))
 
-useSeoMeta(() => ({
+useSeoMeta({
   title: 'fFile',
   description: t('app.description')
-}))
+})
 </script>
 
 <template>
@@ -22,7 +22,7 @@ useSeoMeta(() => ({
       max: 5,
       expand: true,
       ui: {
-        viewport: '!bottom-26'
+        viewport: '!bottom-20'
       }
     }"
   >

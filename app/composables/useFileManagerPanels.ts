@@ -461,15 +461,11 @@ export function useFileManagerPanels() {
 
   async function onEntryClick(panel: PanelState, entry: PanelEntry) {
     selectPanel(panel)
-
-    const alreadySelected = panel.selectedKey === entry.key
     panel.selectedKey = entry.key
     ensureSelectionVisible(panel)
+  }
 
-    if (!alreadySelected) {
-      return
-    }
-
+  async function openEntry(panel: PanelState, entry: PanelEntry) {
     if (entry.kind === 'root' && entry.rootId) {
       await enterRoot(panel, entry.rootId)
       return
@@ -487,27 +483,20 @@ export function useFileManagerPanels() {
     }
   }
 
+  async function onEntryDoubleClick(panel: PanelState, entry: PanelEntry) {
+    selectPanel(panel)
+    panel.selectedKey = entry.key
+    ensureSelectionVisible(panel)
+    await openEntry(panel, entry)
+  }
+
   async function openSelectedEntry(panel: PanelState) {
     const entry = selectedEntry(panel)
     if (!entry) {
       return
     }
 
-    if (entry.kind === 'root' && entry.rootId) {
-      await enterRoot(panel, entry.rootId)
-      return
-    }
-
-    if (entry.kind === 'up') {
-      await goUp(panel)
-      return
-    }
-
-    if (entry.kind === 'dir') {
-      await runSafeNavigation(panel, () => {
-        panel.path = entry.path
-      })
-    }
+    await openEntry(panel, entry)
   }
 
   function switchActivePanel() {
@@ -550,6 +539,7 @@ export function useFileManagerPanels() {
     goBack,
     mirrorFromOpposite,
     onEntryClick,
+    onEntryDoubleClick,
     openSelectedEntry,
     switchActivePanel
   }

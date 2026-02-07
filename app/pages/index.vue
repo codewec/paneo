@@ -30,6 +30,7 @@ const {
   selectPanel,
   navigateToPath,
   onEntryClick,
+  onEntryDoubleClick,
   goBack,
   mirrorFromOpposite,
   openSelectedEntry,
@@ -141,11 +142,17 @@ await initialize()
             <template #header>
               <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
-                  <span v-if="!panel.rootId" class="text-sm font-medium text-muted">
+                  <span
+                    v-if="!panel.rootId"
+                    class="text-sm font-medium text-muted"
+                  >
                     {{ panelTitle(panel) }}
                   </span>
                   <template v-else>
-                    <template v-for="(part, partIndex) in pathParts(panel)" :key="`${part.path || 'root'}-${partIndex}`">
+                    <template
+                      v-for="(part, partIndex) in pathParts(panel)"
+                      :key="`${part.path || 'root'}-${partIndex}`"
+                    >
                       <UButton
                         size="xs"
                         color="neutral"
@@ -155,7 +162,10 @@ await initialize()
                       >
                         {{ part.label }}
                       </UButton>
-                      <span v-if="partIndex < pathParts(panel).length - 1" class="text-muted">/</span>
+                      <span
+                        v-if="partIndex < pathParts(panel).length - 1"
+                        class="text-muted"
+                      >/</span>
                     </template>
                   </template>
                 </div>
@@ -190,8 +200,8 @@ await initialize()
             />
 
             <div
-              class="h-full space-y-1 overflow-auto"
               :ref="(el) => setListRef(panel.id, el)"
+              class="h-full space-y-1 overflow-auto"
             >
               <UButton
                 v-for="entry in panel.entries"
@@ -201,6 +211,7 @@ await initialize()
                 :color="isSelected(panel, entry) ? 'primary' : 'neutral'"
                 :variant="isSelected(panel, entry) ? 'soft' : 'ghost'"
                 @click.stop="onEntryClick(panel, entry)"
+                @dblclick.stop="onEntryDoubleClick(panel, entry)"
               >
                 <template #leading>
                   <UIcon
@@ -231,30 +242,101 @@ await initialize()
 
       <UCard :ui="{ body: 'p-2' }">
         <div class="grid grid-cols-2 gap-2 md:grid-cols-7">
-          <UButton :label="t('hotkeys.f1Settings')" icon="i-lucide-settings" color="neutral" variant="outline" class="justify-center" @click="openSettings" />
-          <UButton :label="t('hotkeys.f3View')" icon="i-lucide-eye" color="neutral" variant="outline" class="justify-center" :disabled="!canView" @click="openViewer" />
-          <UButton :label="t('hotkeys.f4Edit')" icon="i-lucide-file-pen-line" color="neutral" variant="outline" class="justify-center" :disabled="!canEdit" @click="openEditor" />
-          <UButton :label="t('hotkeys.f5Copy')" icon="i-lucide-copy" class="justify-center" :disabled="!canCopyOrMove" @click="copyOrMove('copy')" />
-          <UButton :label="t('hotkeys.f6Move')" icon="i-lucide-move-right" color="neutral" class="justify-center" :disabled="!canCopyOrMove" @click="copyOrMove('move')" />
-          <UButton :label="t('hotkeys.f7Folder')" icon="i-lucide-folder-plus" color="neutral" variant="outline" class="justify-center" :disabled="!canCreateDir" @click="openCreateDir" />
-          <UButton :label="t('hotkeys.f8Delete')" icon="i-lucide-trash-2" color="error" variant="outline" class="justify-center" :disabled="!canDelete" @click="removeSelected" />
+          <UButton
+            :label="t('hotkeys.f1Settings')"
+            icon="i-lucide-settings"
+            color="neutral"
+            variant="outline"
+            class="justify-center"
+            @click="openSettings"
+          />
+          <UButton
+            :label="t('hotkeys.f3View')"
+            icon="i-lucide-eye"
+            color="neutral"
+            variant="outline"
+            class="justify-center"
+            :disabled="!canView"
+            @click="openViewer"
+          />
+          <UButton
+            :label="t('hotkeys.f4Edit')"
+            icon="i-lucide-file-pen-line"
+            color="neutral"
+            variant="outline"
+            class="justify-center"
+            :disabled="!canEdit"
+            @click="openEditor"
+          />
+          <UButton
+            :label="t('hotkeys.f5Copy')"
+            icon="i-lucide-copy"
+            class="justify-center"
+            :disabled="!canCopyOrMove"
+            @click="copyOrMove('copy')"
+          />
+          <UButton
+            :label="t('hotkeys.f6Move')"
+            icon="i-lucide-move-right"
+            color="neutral"
+            class="justify-center"
+            :disabled="!canCopyOrMove"
+            @click="copyOrMove('move')"
+          />
+          <UButton
+            :label="t('hotkeys.f7Folder')"
+            icon="i-lucide-folder-plus"
+            color="neutral"
+            variant="outline"
+            class="justify-center"
+            :disabled="!canCreateDir"
+            @click="openCreateDir"
+          />
+          <UButton
+            :label="t('hotkeys.f8Delete')"
+            icon="i-lucide-trash-2"
+            color="error"
+            variant="outline"
+            class="justify-center"
+            :disabled="!canDelete"
+            @click="removeSelected"
+          />
         </div>
       </UCard>
     </div>
 
-    <UModal v-model:open="viewerOpen" :title="viewerTitle" :ui="{ content: 'max-w-4xl' }">
+    <UModal
+      v-model:open="viewerOpen"
+      :title="viewerTitle"
+      :ui="{ content: 'max-w-4xl' }"
+    >
       <template #body>
         <template v-if="viewerMode === 'image'">
-          <img :src="viewerUrl" alt="preview" class="max-h-[75vh] w-full object-contain" />
+          <img
+            :src="viewerUrl"
+            alt="preview"
+            class="max-h-[75vh] w-full object-contain"
+          >
         </template>
         <template v-else-if="viewerMode === 'video'">
-          <video :src="viewerUrl" controls class="max-h-[75vh] w-full" />
+          <video
+            :src="viewerUrl"
+            controls
+            class="max-h-[75vh] w-full"
+          />
         </template>
         <template v-else-if="viewerMode === 'audio'">
-          <audio :src="viewerUrl" controls class="w-full" />
+          <audio
+            :src="viewerUrl"
+            controls
+            class="w-full"
+          />
         </template>
         <template v-else>
-          <iframe :src="viewerUrl" class="h-[75vh] w-full rounded" />
+          <iframe
+            :src="viewerUrl"
+            class="h-[75vh] w-full rounded"
+          />
         </template>
       </template>
     </UModal>
@@ -275,45 +357,83 @@ await initialize()
             :ui="{ root: 'h-full', base: 'h-full resize-none overflow-auto' }"
           />
           <div class="shrink-0 flex justify-end">
-            <UButton :loading="editorSaving" :label="t('buttons.save')" icon="i-lucide-save" @click="saveEditor" />
+            <UButton
+              :loading="editorSaving"
+              :label="t('buttons.save')"
+              icon="i-lucide-save"
+              @click="saveEditor"
+            />
           </div>
         </div>
       </template>
     </UModal>
 
-    <UModal v-model:open="createDirOpen" :title="t('modal.createFolder')">
+    <UModal
+      v-model:open="createDirOpen"
+      :title="t('modal.createFolder')"
+    >
       <template #body>
         <div class="space-y-3">
-          <UInput v-model="createDirName" :placeholder="t('fields.folderName')" />
+          <UInput
+            v-model="createDirName"
+            :placeholder="t('fields.folderName')"
+          />
           <div class="flex justify-end">
-            <UButton :label="t('buttons.create')" icon="i-lucide-folder-plus" @click="createDir" />
+            <UButton
+              :label="t('buttons.create')"
+              icon="i-lucide-folder-plus"
+              @click="createDir"
+            />
           </div>
         </div>
       </template>
     </UModal>
 
-    <UModal v-model:open="settingsOpen" :title="t('modal.settings')">
+    <UModal
+      v-model:open="settingsOpen"
+      :title="t('modal.settings')"
+    >
       <template #body>
         <div class="space-y-4">
           <div class="space-y-2">
-            <p class="text-sm text-muted">{{ t('settings.language') }}</p>
+            <p class="text-sm text-muted">
+              {{ t('settings.language') }}
+            </p>
             <div class="grid w-full grid-cols-2 gap-2">
-              <UButton class="flex-1 justify-center" :variant="locale === 'ru' ? 'solid' : 'outline'" @click="setLanguage('ru')">
+              <UButton
+                class="flex-1 justify-center"
+                :variant="locale === 'ru' ? 'solid' : 'outline'"
+                @click="setLanguage('ru')"
+              >
                 {{ t('settings.russian') }}
               </UButton>
-              <UButton class="flex-1 justify-center" :variant="locale === 'en' ? 'solid' : 'outline'" @click="setLanguage('en')">
+              <UButton
+                class="flex-1 justify-center"
+                :variant="locale === 'en' ? 'solid' : 'outline'"
+                @click="setLanguage('en')"
+              >
                 {{ t('settings.english') }}
               </UButton>
             </div>
           </div>
 
           <div class="space-y-2">
-            <p class="text-sm text-muted">{{ t('settings.theme') }}</p>
+            <p class="text-sm text-muted">
+              {{ t('settings.theme') }}
+            </p>
             <div class="grid w-full grid-cols-2 gap-2">
-              <UButton class="flex-1 justify-center" :variant="currentTheme === 'light' ? 'solid' : 'outline'" @click="setTheme('light')">
+              <UButton
+                class="flex-1 justify-center"
+                :variant="currentTheme === 'light' ? 'solid' : 'outline'"
+                @click="setTheme('light')"
+              >
                 {{ t('settings.light') }}
               </UButton>
-              <UButton class="flex-1 justify-center" :variant="currentTheme === 'dark' ? 'solid' : 'outline'" @click="setTheme('dark')">
+              <UButton
+                class="flex-1 justify-center"
+                :variant="currentTheme === 'dark' ? 'solid' : 'outline'"
+                @click="setTheme('dark')"
+              >
                 {{ t('settings.dark') }}
               </UButton>
             </div>
@@ -322,8 +442,14 @@ await initialize()
       </template>
     </UModal>
 
-    <div v-if="rootsLoading || leftPanel.loading || rightPanel.loading" class="fixed right-4 top-4">
-      <UBadge color="neutral" variant="soft">
+    <div
+      v-if="rootsLoading || leftPanel.loading || rightPanel.loading"
+      class="fixed right-4 top-4"
+    >
+      <UBadge
+        color="neutral"
+        variant="soft"
+      >
         {{ t('loading') }}
       </UBadge>
     </div>
