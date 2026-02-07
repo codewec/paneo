@@ -42,6 +42,9 @@ export function useFileManagerActions(panels: PanelsContext) {
 
   const createDirOpen = ref(false)
   const createDirName = ref('')
+  const deleteConfirmOpen = ref(false)
+  const deleteTarget = ref<{ rootId: string, path: string, name: string } | null>(null)
+  const deleteLoading = ref(false)
   const fileMetaCache = ref(new Map<string, { mimeType: string, isText: boolean }>())
   const selectedFileMeta = ref<{ mimeType: string, isText: boolean } | null>(null)
   const selectedFileMetaLoading = ref(false)
@@ -281,15 +284,27 @@ export function useFileManagerActions(panels: PanelsContext) {
       return
     }
 
-    const isConfirmed = window.confirm(t('confirm.delete', { name: entry.name }))
-    if (!isConfirmed) {
+    deleteTarget.value = {
+      rootId: panel.rootId,
+      path: entry.path,
+      name: entry.name
+    }
+    deleteConfirmOpen.value = true
+  }
+
+  async function confirmRemoveSelected() {
+    if (!deleteTarget.value) {
       return
     }
 
+    deleteLoading.value = true
+
     try {
-      await api.remove(panel.rootId, entry.path)
+      await api.remove(deleteTarget.value.rootId, deleteTarget.value.path)
 
       toast.add({ title: t('toasts.deleted'), color: 'success' })
+      deleteConfirmOpen.value = false
+      deleteTarget.value = null
       await reloadBothPanels()
     } catch (error) {
       toast.add({
@@ -297,6 +312,8 @@ export function useFileManagerActions(panels: PanelsContext) {
         description: getErrorMessage(error),
         color: 'error'
       })
+    } finally {
+      deleteLoading.value = false
     }
   }
 
@@ -346,6 +363,9 @@ export function useFileManagerActions(panels: PanelsContext) {
     editorSaving,
     createDirOpen,
     createDirName,
+    deleteConfirmOpen,
+    deleteTarget,
+    deleteLoading,
     canView,
     canEdit,
     canCopyOrMove,
@@ -356,6 +376,7 @@ export function useFileManagerActions(panels: PanelsContext) {
     saveEditor,
     copyOrMove,
     removeSelected,
+    confirmRemoveSelected,
     openCreateDir,
     createDir
   }

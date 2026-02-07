@@ -23,14 +23,17 @@
   "modal": {
     "editor": "Editor: {name}",
     "createFolder": "Create Folder",
-    "settings": "Settings"
+    "settings": "Settings",
+    "delete": "Delete"
   },
   "fields": {
     "folderName": "Folder name"
   },
   "buttons": {
     "save": "Save",
-    "create": "Create"
+    "create": "Create",
+    "cancel": "Cancel",
+    "delete": "Delete"
   },
   "settings": {
     "language": "Language",

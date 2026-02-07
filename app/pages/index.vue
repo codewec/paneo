@@ -6,6 +6,7 @@ const { t, locale, setLocale } = useI18n()
 const colorMode = useColorMode()
 
 const settingsOpen = ref(false)
+const createDirInputRef = ref<{ $el?: HTMLElement } | null>(null)
 
 const {
   rootsLoading,
@@ -48,6 +49,9 @@ const {
   editorSaving,
   createDirOpen,
   createDirName,
+  deleteConfirmOpen,
+  deleteTarget,
+  deleteLoading,
   canView,
   canEdit,
   canCopyOrMove,
@@ -58,6 +62,7 @@ const {
   saveEditor,
   copyOrMove,
   removeSelected,
+  confirmRemoveSelected,
   openCreateDir,
   createDir
 } = useFileManagerActions(panels)
@@ -85,7 +90,38 @@ function setLanguage(value: 'ru' | 'en') {
   void setLocale(value)
 }
 
+function isModalOpen() {
+  return viewerOpen.value
+    || editorOpen.value
+    || createDirOpen.value
+    || deleteConfirmOpen.value
+    || settingsOpen.value
+}
+
+function focusCreateDirInput() {
+  nextTick(() => {
+    const input = createDirInputRef.value?.$el?.querySelector('input') as HTMLInputElement | null
+    input?.focus()
+    input?.select()
+  })
+}
+
+async function handleDeleteConfirmEnter(event: KeyboardEvent) {
+  if (!deleteConfirmOpen.value || deleteLoading.value) {
+    return
+  }
+
+  if (event.key !== 'Enter') {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+  await confirmRemoveSelected()
+}
+
 useFileManagerHotkeys({
+  isEnabled: () => !isModalOpen(),
   onTab: switchActivePanel,
   onArrowDown: () => moveSelection(activePanel.value, 1),
   onArrowUp: () => moveSelection(activePanel.value, -1),
@@ -99,6 +135,25 @@ useFileManagerHotkeys({
   onF6: () => copyOrMove('move'),
   onF7: openCreateDir,
   onF8: removeSelected
+})
+
+watch(createDirOpen, (isOpen) => {
+  if (isOpen) {
+    focusCreateDirInput()
+  }
+})
+
+watch(deleteConfirmOpen, (isOpen) => {
+  if (isOpen) {
+    window.addEventListener('keydown', handleDeleteConfirmEnter, true)
+    return
+  }
+
+  window.removeEventListener('keydown', handleDeleteConfirmEnter, true)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleDeleteConfirmEnter, true)
 })
 
 onMounted(() => {
@@ -374,10 +429,12 @@ await initialize()
     >
       <template #body>
         <UInput
+          ref="createDirInputRef"
           v-model="createDirName"
           class="w-full"
           size="xl"
           :placeholder="t('fields.folderName')"
+          @keydown.enter.prevent="createDir"
         />
       </template>
       <template #footer>
@@ -386,6 +443,34 @@ await initialize()
             :label="t('buttons.create')"
             icon="i-lucide-folder-plus"
             @click="createDir"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="deleteConfirmOpen"
+      :title="t('modal.delete')"
+    >
+      <template #body>
+        <p class="text-sm text-muted">
+          {{ t('confirm.delete', { name: deleteTarget?.name || '' }) }}
+        </p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full gap-2">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :label="t('buttons.cancel')"
+            @click="deleteConfirmOpen = false"
+          />
+          <UButton
+            color="error"
+            :loading="deleteLoading"
+            :label="t('buttons.delete')"
+            icon="i-lucide-trash-2"
+            @click="confirmRemoveSelected"
           />
         </div>
       </template>

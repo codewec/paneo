@@ -1,4 +1,5 @@
 interface FileManagerHotkeysOptions {
+  isEnabled?: () => boolean
   onTab: () => void
   onArrowDown: () => void
   onArrowUp: () => void
@@ -29,6 +30,10 @@ function isTypingElement(target: EventTarget | null) {
 
 export function useFileManagerHotkeys(options: FileManagerHotkeysOptions) {
   async function handleGlobalKeydown(event: KeyboardEvent) {
+    if (options.isEnabled && !options.isEnabled()) {
+      return
+    }
+
     if (isTypingElement(event.target)) {
       return
     }

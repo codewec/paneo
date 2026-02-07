@@ -25,14 +25,17 @@
   "modal": {
     "editor": "Редактор: {name}",
     "createFolder": "Создать папку",
-    "settings": "Настройки"
+    "settings": "Настройки",
+    "delete": "Удаление"
   },
   "fields": {
     "folderName": "Имя папки"
   },
   "buttons": {
     "save": "Сохранить",
-    "create": "Создать"
+    "create": "Создать",
+    "cancel": "Отмена",
+    "delete": "Удалить"
   },
   "settings": {
     "language": "Язык интерфейса",
