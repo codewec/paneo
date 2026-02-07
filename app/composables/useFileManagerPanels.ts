@@ -392,6 +392,20 @@ export function useFileManagerPanels() {
     })
   }
 
+  async function openSources(panel: PanelState) {
+    selectPanel(panel)
+
+    if (!panel.rootId) {
+      return
+    }
+
+    await runSafeNavigation(panel, () => {
+      panel.rootId = null
+      panel.path = ''
+      panel.parentPath = null
+    })
+  }
+
   async function goUp(panel: PanelState) {
     selectPanel(panel)
 
@@ -534,6 +548,7 @@ export function useFileManagerPanels() {
     initialize,
     selectPanel,
     enterRoot,
+    openSources,
     navigateToPath,
     goUp,
     goBack,

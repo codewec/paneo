@@ -29,6 +29,7 @@ const {
   moveSelectionByPage,
   initialize,
   selectPanel,
+  openSources,
   navigateToPath,
   onEntryClick,
   onEntryDoubleClick,
@@ -66,6 +67,8 @@ const {
   openCreateDir,
   createDir
 } = useFileManagerActions(panels)
+
+const hasActionContext = computed(() => !!activePanel.value.rootId)
 
 const currentTheme = computed<'light' | 'dark'>({
   get: () => colorMode.preference === 'dark' ? 'dark' : 'light',
@@ -129,12 +132,16 @@ useFileManagerHotkeys({
   onPageUp: () => moveSelectionByPage(activePanel.value, -1),
   onEnter: () => openSelectedEntry(activePanel.value),
   onF1: openSettings,
-  onF3: openViewer,
-  onF4: openEditor,
-  onF5: () => copyOrMove('copy'),
-  onF6: () => copyOrMove('move'),
-  onF7: openCreateDir,
-  onF8: removeSelected
+  onF3: () => hasActionContext.value ? openViewer() : Promise.resolve(),
+  onF4: () => hasActionContext.value ? openEditor() : Promise.resolve(),
+  onF5: () => hasActionContext.value ? copyOrMove('copy') : Promise.resolve(),
+  onF6: () => hasActionContext.value ? copyOrMove('move') : Promise.resolve(),
+  onF7: () => {
+    if (hasActionContext.value) {
+      openCreateDir()
+    }
+  },
+  onF8: () => hasActionContext.value ? removeSelected() : Promise.resolve()
 })
 
 watch(createDirOpen, (isOpen) => {
@@ -197,6 +204,19 @@ await initialize()
             <template #header>
               <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+                  <UButton
+                    icon="i-lucide-house"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    class="shrink-0 px-1"
+                    :title="t('panel.sources')"
+                    @click.stop="openSources(panel)"
+                  />
+                  <span
+                    v-if="panel.rootId"
+                    class="text-muted"
+                  >/</span>
                   <span
                     v-if="!panel.rootId"
                     class="text-sm font-medium text-muted"
@@ -311,7 +331,7 @@ await initialize()
             color="neutral"
             variant="outline"
             class="justify-center"
-            :disabled="!canView"
+            :disabled="!hasActionContext || !canView"
             @click="openViewer"
           />
           <UButton
@@ -320,14 +340,14 @@ await initialize()
             color="neutral"
             variant="outline"
             class="justify-center"
-            :disabled="!canEdit"
+            :disabled="!hasActionContext || !canEdit"
             @click="openEditor"
           />
           <UButton
             :label="t('hotkeys.f5Copy')"
             icon="i-lucide-copy"
             class="justify-center"
-            :disabled="!canCopyOrMove"
+            :disabled="!hasActionContext || !canCopyOrMove"
             @click="copyOrMove('copy')"
           />
           <UButton
@@ -335,7 +355,7 @@ await initialize()
             icon="i-lucide-move-right"
             color="neutral"
             class="justify-center"
-            :disabled="!canCopyOrMove"
+            :disabled="!hasActionContext || !canCopyOrMove"
             @click="copyOrMove('move')"
           />
           <UButton
@@ -344,7 +364,7 @@ await initialize()
             color="neutral"
             variant="outline"
             class="justify-center"
-            :disabled="!canCreateDir"
+            :disabled="!hasActionContext || !canCreateDir"
             @click="openCreateDir"
           />
           <UButton
@@ -353,7 +373,7 @@ await initialize()
             color="error"
             variant="outline"
             class="justify-center"
-            :disabled="!canDelete"
+            :disabled="!hasActionContext || !canDelete"
             @click="removeSelected"
           />
         </div>
