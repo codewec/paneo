@@ -986,6 +986,7 @@ export function useFileManagerActions(panels: PanelsContext) {
     }
 
     try {
+      const createdName = createDirName.value.trim()
       if (createAsFile.value) {
         await api.createFile(panel.rootId, panel.path, createDirName.value)
       } else {
@@ -994,9 +995,9 @@ export function useFileManagerActions(panels: PanelsContext) {
 
       createDirOpen.value = false
       toast.add({ title: createAsFile.value ? t('toasts.fileCreated') : t('toasts.folderCreated'), color: 'success' })
-      const currentIndex = panels.getSelectedIndex(panel)
+      const createdPath = joinRelativePath(panel.path, createdName)
       await panels.loadPanel(panel, {
-        preferredSelectedIndex: currentIndex >= 0 ? currentIndex : null
+        preferredSelectedPath: createdPath
       })
     } catch (error) {
       toast.add({

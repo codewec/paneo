@@ -116,15 +116,17 @@ const activePanelSelectedEntry = computed(() => {
   return panel.entries.find(entry => entry.key === panel.selectedKey) || null
 })
 
+const actionEntriesCount = computed(() => panels.getActionEntries(activePanel.value).length)
+const isMultiActionSelection = computed(() => actionEntriesCount.value > 1)
 const selectedKind = computed(() => activePanelSelectedEntry.value?.kind || null)
 const canUseFileActions = computed(() => selectedKind.value === 'file')
 const canUseEntryActions = computed(() => selectedKind.value === 'file' || selectedKind.value === 'dir')
 
-const canUseF3 = computed(() => isClientMounted.value && canUseFileActions.value)
-const canUseF4 = computed(() => isClientMounted.value && canUseFileActions.value && canEdit.value)
+const canUseF3 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value)
+const canUseF4 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value && canEdit.value)
 const canUseF5 = computed(() => isClientMounted.value && canUseEntryActions.value && canCopy.value)
-const canUseF6 = computed(() => isClientMounted.value && canUseEntryActions.value && canRename.value)
-const canUseF7 = computed(() => isClientMounted.value && !!activePanel.value.rootId && canCreateDir.value)
+const canUseF6 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseEntryActions.value && canRename.value)
+const canUseF7 = computed(() => isClientMounted.value && !isMultiActionSelection.value && !!activePanel.value.rootId && canCreateDir.value)
 const canUseF8 = computed(() => isClientMounted.value && canUseEntryActions.value && canDelete.value)
 const copyProgressStatusLabel = computed(() => {
   const status = activeCopyTask.value?.status
@@ -439,10 +441,10 @@ await initialize()
                 ]"
                 :data-entry-key="entry.key"
                 :color="isSelected(panel, entry)
-                    ? (activePanelId === panel.id ? 'primary' : 'neutral')
-                    : isMarked(panel, entry)
-                      ? 'warning'
-                      : 'neutral'"
+                  ? (activePanelId === panel.id ? 'primary' : 'neutral')
+                  : isMarked(panel, entry)
+                    ? 'warning'
+                    : 'neutral'"
                 :variant="isSelected(panel, entry)
                   ? (activePanelId === panel.id ? 'soft' : 'subtle')
                   : isMarked(panel, entry)
