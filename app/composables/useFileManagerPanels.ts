@@ -18,6 +18,15 @@ function toEntryKey(kind: PanelEntry['kind'], value: string) {
   return `${kind}:${value}`
 }
 
+interface PanelLocation {
+  rootId: string | null
+  path: string
+}
+
+interface NavigationOptions {
+  recordHistory?: boolean
+}
+
 export function useFileManagerPanels() {
   const api = useFileManagerApi()
   const toast = useToast()
@@ -38,6 +47,10 @@ export function useFileManagerPanels() {
     left: null,
     right: null
   })
+  const backHistory = reactive<Record<'left' | 'right', PanelLocation[]>>({
+    left: [],
+    right: []
+  })
 
   const rootsMap = computed(() => {
     const map = new Map<string, string>()
@@ -47,6 +60,25 @@ export function useFileManagerPanels() {
     return map
   })
 
+  function getPanelLocation(panel: PanelState): PanelLocation {
+    return {
+      rootId: panel.rootId,
+      path: panel.path
+    }
+  }
+
+  function isSameLocation(a: PanelLocation, b: PanelLocation) {
+    return a.rootId === b.rootId && a.path === b.path
+  }
+
+  function pushBackHistory(panel: PanelState, location: PanelLocation) {
+    const stack = backHistory[panel.id]
+    stack.push({ ...location })
+    if (stack.length > 32) {
+      stack.splice(0, stack.length - 32)
+    }
+  }
+
   function panelTitle(panel: PanelState) {
     if (!panel.rootId) {
       return t('panel.sources')
@@ -54,6 +86,29 @@ export function useFileManagerPanels() {
 
     const rootName = rootsMap.value.get(panel.rootId) || panel.rootId
     return panel.path ? `${rootName}:/${panel.path}` : `${rootName}:/`
+  }
+
+  function pathParts(panel: PanelState) {
+    if (!panel.rootId) {
+      return []
+    }
+
+    const rootName = rootsMap.value.get(panel.rootId) || panel.rootId
+    const parts: Array<{ label: string, path: string }> = [{ label: rootName, path: '' }]
+
+    if (!panel.path) {
+      return parts
+    }
+
+    const segments = panel.path.split('/').filter(Boolean)
+    let currentPath = ''
+
+    for (const segment of segments) {
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment
+      parts.push({ label: segment, path: currentPath })
+    }
+
+    return parts
   }
 
   function formatSize(bytes: number) {
@@ -277,13 +332,19 @@ export function useFileManagerPanels() {
   async function runSafeNavigation(
     panel: PanelState,
     mutate: () => void,
-    options?: LoadPanelOptions
+    options?: LoadPanelOptions,
+    navigationOptions?: NavigationOptions
   ) {
     const snapshot = snapshotPanel(panel)
+    const fromLocation = getPanelLocation(panel)
     mutate()
+    const toLocation = getPanelLocation(panel)
 
     try {
       await loadPanel(panel, options)
+      if (navigationOptions?.recordHistory !== false && !isSameLocation(fromLocation, toLocation)) {
+        pushBackHistory(panel, fromLocation)
+      }
       return true
     } catch (error) {
       restorePanel(panel, snapshot)
@@ -314,6 +375,20 @@ export function useFileManagerPanels() {
     })
   }
 
+  async function navigateToPath(panel: PanelState, path: string) {
+    if (!panel.rootId) {
+      return
+    }
+
+    if (panel.path === path) {
+      return
+    }
+
+    await runSafeNavigation(panel, () => {
+      panel.path = path
+    })
+  }
+
   async function goUp(panel: PanelState) {
     selectPanel(panel)
 
@@ -324,16 +399,61 @@ export function useFileManagerPanels() {
     const previousPath = panel.path
 
     if (!panel.path) {
-      panel.rootId = null
-      panel.path = ''
-      panel.parentPath = null
-      await loadPanel(panel)
+      await runSafeNavigation(panel, () => {
+        panel.rootId = null
+        panel.path = ''
+        panel.parentPath = null
+      })
       return
     }
 
     await runSafeNavigation(panel, () => {
       panel.path = panel.parentPath || ''
     }, { preferredSelectedPath: previousPath })
+  }
+
+  function canGoBack(panel: PanelState) {
+    return backHistory[panel.id].length > 0
+  }
+
+  async function goBack(panel: PanelState) {
+    selectPanel(panel)
+    const stack = backHistory[panel.id]
+    const target = stack.pop()
+    if (!target) {
+      return
+    }
+
+    const success = await runSafeNavigation(
+      panel,
+      () => {
+        panel.rootId = target.rootId
+        panel.path = target.path
+        panel.parentPath = null
+      },
+      undefined,
+      { recordHistory: false }
+    )
+
+    if (!success) {
+      stack.push(target)
+    }
+  }
+
+  async function mirrorFromOpposite(panel: PanelState) {
+    const opposite = panel.id === 'left' ? rightPanel : leftPanel
+    const oppositeLocation = getPanelLocation(opposite)
+    const currentLocation = getPanelLocation(panel)
+
+    if (isSameLocation(currentLocation, oppositeLocation)) {
+      return
+    }
+
+    await runSafeNavigation(panel, () => {
+      panel.rootId = oppositeLocation.rootId
+      panel.path = oppositeLocation.path
+      panel.parentPath = null
+    })
   }
 
   async function onEntryClick(panel: PanelState, entry: PanelEntry) {
@@ -408,6 +528,8 @@ export function useFileManagerPanels() {
     selectedMtime,
     visibleEntryCount,
     formatItemsCount,
+    pathParts,
+    canGoBack,
     setListRef,
     moveSelection,
     moveSelectionByPage,
@@ -415,7 +537,10 @@ export function useFileManagerPanels() {
     initialize,
     selectPanel,
     enterRoot,
+    navigateToPath,
     goUp,
+    goBack,
+    mirrorFromOpposite,
     onEntryClick,
     openSelectedEntry,
     switchActivePanel

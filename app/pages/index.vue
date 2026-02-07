@@ -15,18 +15,23 @@ const {
   rightPanel,
   activePanel,
   panelTitle,
+  pathParts,
   formatSize,
   formatDate,
   isSelected,
   selectedMtime,
   visibleEntryCount,
   formatItemsCount,
+  canGoBack,
   setListRef,
   moveSelection,
   moveSelectionByPage,
   initialize,
   selectPanel,
+  navigateToPath,
   onEntryClick,
+  goBack,
+  mirrorFromOpposite,
   openSelectedEntry,
   switchActivePanel
 } = panels
@@ -135,11 +140,43 @@ await initialize()
           >
             <template #header>
               <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                  <UBadge :color="activePanelId === panel.id ? 'primary' : 'neutral'" variant="soft">
-                    {{ panel.id === 'left' ? t('panel.left') : t('panel.right') }}
-                  </UBadge>
-                  <span class="text-sm font-medium truncate">{{ panelTitle(panel) }}</span>
+                <div class="min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+                  <span v-if="!panel.rootId" class="text-sm font-medium text-muted">
+                    {{ panelTitle(panel) }}
+                  </span>
+                  <template v-else>
+                    <template v-for="(part, partIndex) in pathParts(panel)" :key="`${part.path || 'root'}-${partIndex}`">
+                      <UButton
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        class="shrink-0 px-1"
+                        @click.stop="navigateToPath(panel, part.path)"
+                      >
+                        {{ part.label }}
+                      </UButton>
+                      <span v-if="partIndex < pathParts(panel).length - 1" class="text-muted">/</span>
+                    </template>
+                  </template>
+                </div>
+                <div class="flex items-center gap-1">
+                  <UButton
+                    icon="i-lucide-copy"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    :title="t('panel.mirror')"
+                    @click.stop="mirrorFromOpposite(panel)"
+                  />
+                  <UButton
+                    icon="i-lucide-history"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    :title="t('panel.back')"
+                    :disabled="!canGoBack(panel)"
+                    @click.stop="goBack(panel)"
+                  />
                 </div>
               </div>
             </template>

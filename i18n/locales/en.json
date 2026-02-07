@@ -6,6 +6,8 @@
     "sources": "Sources",
     "left": "Left",
     "right": "Right",
+    "mirror": "Mirror",
+    "back": "Back",
     "items_one": "{count} item",
     "items_other": "{count} items"
   },

@@ -6,6 +6,8 @@
     "sources": "Источники",
     "left": "Левая",
     "right": "Правая",
+    "mirror": "Зеркало",
+    "back": "Назад",
     "items_one": "{count} элемент",
     "items_few": "{count} элемента",
     "items_many": "{count} элементов",
