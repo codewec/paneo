@@ -29,7 +29,7 @@ interface NavigationOptions {
 
 export function useFileManagerPanels() {
   const api = useFileManagerApi()
-  const toast = useToast()
+  const toast = useAppToast()
   const { t, locale } = useI18n()
 
   const roots = ref<RootItem[]>([])

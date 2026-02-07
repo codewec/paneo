@@ -14,7 +14,18 @@ useSeoMeta(() => ({
 </script>
 
 <template>
-  <UApp>
+  <UApp
+    :toaster="{
+      position: 'bottom-right',
+      duration: 3500,
+      progress: true,
+      max: 5,
+      expand: true,
+      ui: {
+        viewport: '!bottom-26'
+      }
+    }"
+  >
     <NuxtPage />
   </UApp>
 </template>

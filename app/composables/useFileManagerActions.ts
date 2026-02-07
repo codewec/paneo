@@ -26,7 +26,7 @@ function isAudioPath(filePath: string) {
 
 export function useFileManagerActions(panels: PanelsContext) {
   const api = useFileManagerApi()
-  const toast = useToast()
+  const toast = useAppToast()
   const { t } = useI18n()
 
   const viewerOpen = ref(false)
