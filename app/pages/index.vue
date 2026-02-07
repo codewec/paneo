@@ -7,6 +7,7 @@ const colorMode = useColorMode()
 
 const settingsOpen = ref(false)
 const createDirInputRef = ref<{ $el?: HTMLElement } | null>(null)
+const renameInputRef = ref<{ $el?: HTMLElement } | null>(null)
 
 const {
   rootsLoading,
@@ -50,18 +51,39 @@ const {
   editorSaving,
   createDirOpen,
   createDirName,
+  copyConfirmOpen,
+  copyOverwriteExisting,
+  copyDeleteSource,
+  copyDeleteSourceDisabled,
+  copySubmitting,
+  copyProgressOpen,
+  activeCopyTask,
+  activeCopyProgressPercent,
+  renameOpen,
+  renameName,
+  renameLoading,
+  copyFromLabel,
+  copyToLabel,
   deleteConfirmOpen,
   deleteTarget,
   deleteLoading,
   canView,
   canEdit,
-  canCopyOrMove,
+  canCopy,
+  canRename,
   canDelete,
   canCreateDir,
   openViewer,
   openEditor,
   saveEditor,
-  copyOrMove,
+  openCopy,
+  confirmCopy,
+  cancelActiveCopyTask,
+  minimizeActiveCopyTask,
+  openRename,
+  confirmRename,
+  closeRename,
+  closeCopyConfirm,
   removeSelected,
   confirmRemoveSelected,
   openCreateDir,
@@ -72,6 +94,22 @@ const hasSourcesListVisible = computed(() => (
   [leftPanel, rightPanel].some(panel => !panel.rootId || panel.entries.some(entry => entry.kind === 'root'))
 ))
 const hasActionContext = computed(() => !hasSourcesListVisible.value && !!activePanel.value.rootId)
+const copyProgressStatusLabel = computed(() => {
+  const status = activeCopyTask.value?.status
+  if (!status) {
+    return t('copy.status.running')
+  }
+
+  return t(`copy.status.${status}`)
+})
+const copyProgressHeader = computed(() => {
+  const percent = activeCopyProgressPercent.value
+  if (percent === null) {
+    return copyProgressStatusLabel.value
+  }
+
+  return `${copyProgressStatusLabel.value} · ${percent}%`
+})
 
 const currentTheme = computed<'light' | 'dark'>({
   get: () => colorMode.preference === 'dark' ? 'dark' : 'light',
@@ -100,6 +138,9 @@ function isModalOpen() {
   return viewerOpen.value
     || editorOpen.value
     || createDirOpen.value
+    || renameOpen.value
+    || copyConfirmOpen.value
+    || copyProgressOpen.value
     || deleteConfirmOpen.value
     || settingsOpen.value
 }
@@ -107,6 +148,14 @@ function isModalOpen() {
 function focusCreateDirInput() {
   nextTick(() => {
     const input = createDirInputRef.value?.$el?.querySelector('input') as HTMLInputElement | null
+    input?.focus()
+    input?.select()
+  })
+}
+
+function focusRenameInput() {
+  nextTick(() => {
+    const input = renameInputRef.value?.$el?.querySelector('input') as HTMLInputElement | null
     input?.focus()
     input?.select()
   })
@@ -126,6 +175,20 @@ async function handleDeleteConfirmEnter(event: KeyboardEvent) {
   await confirmRemoveSelected()
 }
 
+async function handleCopyConfirmEnter(event: KeyboardEvent) {
+  if (!copyConfirmOpen.value || copySubmitting.value) {
+    return
+  }
+
+  if (event.key !== 'Enter') {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+  await confirmCopy()
+}
+
 useFileManagerHotkeys({
   isEnabled: () => !isModalOpen(),
   onTab: switchActivePanel,
@@ -137,8 +200,8 @@ useFileManagerHotkeys({
   onF1: openSettings,
   onF3: () => hasActionContext.value ? openViewer() : Promise.resolve(),
   onF4: () => hasActionContext.value ? openEditor() : Promise.resolve(),
-  onF5: () => hasActionContext.value ? copyOrMove('copy') : Promise.resolve(),
-  onF6: () => hasActionContext.value ? copyOrMove('move') : Promise.resolve(),
+  onF5: () => hasActionContext.value && canCopy.value ? Promise.resolve(openCopy()) : Promise.resolve(),
+  onF6: () => hasActionContext.value && canRename.value ? Promise.resolve(openRename()) : Promise.resolve(),
   onF7: () => {
     if (hasActionContext.value) {
       openCreateDir()
@@ -153,6 +216,12 @@ watch(createDirOpen, (isOpen) => {
   }
 })
 
+watch(renameOpen, (isOpen) => {
+  if (isOpen) {
+    focusRenameInput()
+  }
+})
+
 watch(deleteConfirmOpen, (isOpen) => {
   if (isOpen) {
     window.addEventListener('keydown', handleDeleteConfirmEnter, true)
@@ -162,8 +231,18 @@ watch(deleteConfirmOpen, (isOpen) => {
   window.removeEventListener('keydown', handleDeleteConfirmEnter, true)
 })
 
+watch(copyConfirmOpen, (isOpen) => {
+  if (isOpen) {
+    window.addEventListener('keydown', handleCopyConfirmEnter, true)
+    return
+  }
+
+  window.removeEventListener('keydown', handleCopyConfirmEnter, true)
+})
+
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleDeleteConfirmEnter, true)
+  window.removeEventListener('keydown', handleCopyConfirmEnter, true)
 })
 
 onMounted(() => {
@@ -349,17 +428,20 @@ await initialize()
           <UButton
             :label="t('hotkeys.f5Copy')"
             icon="i-lucide-copy"
+            color="neutral"
+            variant="outline"
             class="justify-center"
-            :disabled="!hasActionContext || !canCopyOrMove"
-            @click="copyOrMove('copy')"
+            :disabled="!hasActionContext || !canCopy"
+            @click="openCopy"
           />
           <UButton
-            :label="t('hotkeys.f6Move')"
-            icon="i-lucide-move-right"
+            :label="t('hotkeys.f6Rename')"
+            icon="i-lucide-pencil"
             color="neutral"
+            variant="outline"
             class="justify-center"
-            :disabled="!hasActionContext || !canCopyOrMove"
-            @click="copyOrMove('move')"
+            :disabled="!hasActionContext || !canRename"
+            @click="openRename"
           />
           <UButton
             :label="t('hotkeys.f7Folder')"
@@ -442,6 +524,155 @@ await initialize()
               @click="saveEditor"
             />
           </div>
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="copyConfirmOpen"
+      :title="t('modal.copyOrMove')"
+      :dismissible="!copySubmitting"
+    >
+      <template #body>
+        <div class="space-y-4">
+          <div class="space-y-1 text-sm">
+            <p class="text-muted">
+              {{ t('copy.from') }}
+            </p>
+            <p class="font-mono break-all">
+              {{ copyFromLabel }}
+            </p>
+          </div>
+          <div class="space-y-1 text-sm">
+            <p class="text-muted">
+              {{ t('copy.to') }}
+            </p>
+            <p class="font-mono break-all">
+              {{ copyToLabel }}
+            </p>
+          </div>
+
+          <USwitch
+            v-model="copyOverwriteExisting"
+            :label="t('copy.overwriteExisting')"
+            :disabled="copySubmitting"
+          />
+          <USwitch
+            v-model="copyDeleteSource"
+            :label="t('copy.deleteSource')"
+            :disabled="copySubmitting || copyDeleteSourceDisabled"
+          />
+          <UAlert
+            v-if="copyDeleteSourceDisabled"
+            color="warning"
+            variant="subtle"
+            :title="t('copy.deleteSourceBlocked')"
+          />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full gap-2">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :label="t('buttons.cancel')"
+            :disabled="copySubmitting"
+            @click="closeCopyConfirm"
+          />
+          <UButton
+            :label="t('buttons.copy')"
+            icon="i-lucide-copy"
+            :loading="copySubmitting"
+            @click="confirmCopy"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="renameOpen"
+      :title="t('modal.rename')"
+    >
+      <template #body>
+        <UInput
+          ref="renameInputRef"
+          v-model="renameName"
+          class="w-full"
+          size="xl"
+          :placeholder="t('fields.newName')"
+          @keydown.enter.prevent="confirmRename"
+        />
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full gap-2">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :label="t('buttons.cancel')"
+            :disabled="renameLoading"
+            @click="closeRename"
+          />
+          <UButton
+            :label="t('buttons.rename')"
+            icon="i-lucide-pencil"
+            :loading="renameLoading"
+            @click="confirmRename"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="copyProgressOpen"
+      :title="`${t('modal.copyProgress')} · ${copyProgressHeader}`"
+      :dismissible="false"
+      :close="false"
+    >
+      <template #body>
+        <div
+          v-if="activeCopyTask"
+          class="space-y-4"
+        >
+          <div class="space-y-1 text-sm">
+            <p class="text-muted">
+              {{ t('copy.from') }}
+            </p>
+            <p class="font-mono break-all">
+              {{ activeCopyTask.fromLabel }}
+            </p>
+          </div>
+          <div class="space-y-1 text-sm">
+            <p class="text-muted">
+              {{ t('copy.to') }}
+            </p>
+            <p class="font-mono break-all">
+              {{ activeCopyTask.toLabel }}
+            </p>
+          </div>
+
+          <UProgress :model-value="activeCopyProgressPercent" />
+          <div class="text-xs text-muted space-y-1">
+            <p>{{ activeCopyTask.currentFile || t('copy.preparing') }}</p>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full gap-2">
+          <UButton
+            color="warning"
+            variant="outline"
+            :label="t('buttons.cancelCopy')"
+            icon="i-lucide-ban"
+            :disabled="!activeCopyTask || activeCopyTask.status !== 'running'"
+            @click="cancelActiveCopyTask"
+          />
+          <UButton
+            color="neutral"
+            variant="outline"
+            :label="t('buttons.minimize')"
+            icon="i-lucide-minimize-2"
+            @click="minimizeActiveCopyTask"
+          />
         </div>
       </template>
     </UModal>

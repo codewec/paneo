@@ -1,5 +1,5 @@
 import { readBody } from 'h3'
-import { copyPath } from '~~/server/utils/file-manager'
+import { startCopyJob } from '~~/server/utils/copy-jobs'
 
 interface RequestBody {
   fromRootId?: string
@@ -20,14 +20,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const result = await copyPath(
-    body.fromRootId,
-    body.fromPath,
-    body.toRootId,
-    body.toDirPath,
-    body.newName,
-    body.overwriteExisting ?? true
-  )
-
-  return { ok: true, result }
+  return startCopyJob({
+    fromRootId: body.fromRootId,
+    fromPath: body.fromPath,
+    toRootId: body.toRootId,
+    toDirPath: body.toDirPath,
+    newName: body.newName,
+    overwriteExisting: body.overwriteExisting
+  })
 })

@@ -16,7 +16,7 @@
     "f3View": "F3 View",
     "f4Edit": "F4 Edit",
     "f5Copy": "F5 Copy",
-    "f6Move": "F6 Move",
+    "f6Rename": "F6 Rename",
     "f7Folder": "F7 Folder",
     "f8Delete": "F8 Delete"
   },
@@ -24,16 +24,40 @@
     "editor": "Editor: {name}",
     "createFolder": "Create Folder",
     "settings": "Settings",
-    "delete": "Delete"
+    "delete": "Delete",
+    "copy": "Copy",
+    "copyOrMove": "Copy / Move",
+    "copyProgress": "Copy Progress",
+    "rename": "Rename"
   },
   "fields": {
-    "folderName": "Folder name"
+    "folderName": "Folder name",
+    "newName": "New name"
   },
   "buttons": {
     "save": "Save",
     "create": "Create",
     "cancel": "Cancel",
-    "delete": "Delete"
+    "delete": "Delete",
+    "copy": "Copy",
+    "cancelCopy": "Cancel Copy",
+    "minimize": "Minimize",
+    "open": "Open",
+    "rename": "Rename"
+  },
+  "copy": {
+    "from": "From",
+    "to": "To",
+    "overwriteExisting": "Overwrite if target already exists",
+    "deleteSource": "Delete source files after copy",
+    "deleteSourceBlocked": "\"Delete source files\" option is unavailable: current destination folder is inside the source folder.",
+    "preparing": "Preparing copy...",
+    "status": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "canceled": "Canceled"
+    }
   },
   "settings": {
     "language": "Language",
@@ -53,9 +77,14 @@
     "saved": "File saved",
     "openTargetSourceFirst": "Open destination source first",
     "copyFailed": "Copy error",
+    "copySkipped": "Target already exists, copy skipped",
+    "copyCanceled": "Copy canceled",
+    "copyInProgress": "Copy in progress",
     "moveFailed": "Move error",
     "copied": "Copied",
     "moved": "Moved",
+    "renameFailed": "Rename error",
+    "renamed": "Renamed",
     "deleteFailed": "Delete error",
     "deleted": "Deleted",
     "openSourceFirst": "Open source first",

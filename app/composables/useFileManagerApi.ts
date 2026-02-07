@@ -64,26 +64,84 @@ export function useFileManagerApi() {
     })
   }
 
-  async function copy(fromRootId: string, fromPath: string, toRootId: string, toDirPath: string) {
-    return await $fetch('/api/fs/copy', {
+  async function copy(
+    fromRootId: string,
+    fromPath: string,
+    toRootId: string,
+    toDirPath: string,
+    overwriteExisting = true
+  ) {
+    return await $fetch<{ ok: true, result: { copiedFiles: number, copiedDirectories: number, skipped: number } }>('/api/fs/copy', {
       method: 'POST',
       body: {
         fromRootId,
         fromPath,
         toRootId,
-        toDirPath
+        toDirPath,
+        overwriteExisting
       }
     })
   }
 
-  async function move(fromRootId: string, fromPath: string, toRootId: string, toDirPath: string) {
+  async function startCopy(
+    fromRootId: string,
+    fromPath: string,
+    toRootId: string,
+    toDirPath: string,
+    overwriteExisting = true
+  ) {
+    return await $fetch<{ jobId: string }>('/api/fs/copy-start', {
+      method: 'POST',
+      body: {
+        fromRootId,
+        fromPath,
+        toRootId,
+        toDirPath,
+        overwriteExisting
+      }
+    })
+  }
+
+  async function getCopyStatus(jobId: string) {
+    return await $fetch<{
+      jobId: string
+      status: 'running' | 'completed' | 'failed' | 'canceled'
+      result: { copiedFiles: number, copiedDirectories: number, skipped: number } | null
+      error: string | null
+      progress: {
+        totalFiles: number
+        processedFiles: number
+        copiedFiles: number
+        skipped: number
+        currentFile: string
+      }
+    }>('/api/fs/copy-status', {
+      query: { jobId }
+    })
+  }
+
+  async function cancelCopy(jobId: string) {
+    return await $fetch<{ jobId: string, status: string }>('/api/fs/copy-cancel', {
+      method: 'POST',
+      body: { jobId }
+    })
+  }
+
+  async function move(
+    fromRootId: string,
+    fromPath: string,
+    toRootId: string,
+    toDirPath: string,
+    newName?: string
+  ) {
     return await $fetch('/api/fs/move', {
       method: 'POST',
       body: {
         fromRootId,
         fromPath,
         toRootId,
-        toDirPath
+        toDirPath,
+        newName
       }
     })
   }
@@ -97,6 +155,9 @@ export function useFileManagerApi() {
     mkdir,
     remove,
     copy,
+    startCopy,
+    getCopyStatus,
+    cancelCopy,
     move
   }
 }

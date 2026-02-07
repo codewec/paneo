@@ -1,5 +1,7 @@
-import { access, mkdir, readdir, readFile, rename, rm, stat, writeFile, cp } from 'node:fs/promises'
-import { basename, isAbsolute, normalize, resolve, sep } from 'node:path'
+import { createReadStream, createWriteStream } from 'node:fs'
+import { access, cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { basename, isAbsolute, normalize, relative, resolve, sep } from 'node:path'
+import { pipeline } from 'node:stream/promises'
 import { createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
 
@@ -239,6 +241,198 @@ async function ensureDestinationFree(absPath: string) {
   }
 }
 
+async function pathExists(absPath: string) {
+  try {
+    await access(absPath)
+    return true
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      return false
+    }
+
+    throw error
+  }
+}
+
+interface CopyStats {
+  copiedFiles: number
+  copiedDirectories: number
+  skipped: number
+}
+
+export interface CopyProgress {
+  totalFiles: number
+  processedFiles: number
+  copiedFiles: number
+  skipped: number
+  currentFile: string
+}
+
+interface CopyState {
+  sourceRootAbsPath: string
+  totalFiles: number
+  processedFiles: number
+  copiedFiles: number
+  copiedDirectories: number
+  skipped: number
+  onProgress?: (progress: CopyProgress) => void
+}
+
+function throwIfAborted(signal?: AbortSignal) {
+  if (!signal?.aborted) {
+    return
+  }
+
+  const error = new Error('Copy canceled')
+  ;(error as NodeJS.ErrnoException).code = 'ABORT_ERR'
+  throw error
+}
+
+async function statSafe(absPath: string) {
+  try {
+    return await stat(absPath)
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null
+    }
+
+    throw error
+  }
+}
+
+async function countFilesRecursive(absPath: string): Promise<number> {
+  const entryStats = await stat(absPath)
+  if (!entryStats.isDirectory()) {
+    return 1
+  }
+
+  const entries = await readdir(absPath, { withFileTypes: true })
+  let total = 0
+
+  for (const entry of entries) {
+    total += await countFilesRecursive(resolve(absPath, entry.name))
+  }
+
+  return total
+}
+
+function normalizeDisplayPath(baseAbsPath: string, absPath: string) {
+  const rel = relative(baseAbsPath, absPath).replaceAll('\\', '/')
+  return rel || basename(absPath)
+}
+
+function emitProgress(state: CopyState, absPath: string) {
+  state.onProgress?.({
+    totalFiles: state.totalFiles,
+    processedFiles: state.processedFiles,
+    copiedFiles: state.copiedFiles,
+    skipped: state.skipped,
+    currentFile: normalizeDisplayPath(state.sourceRootAbsPath, absPath)
+  })
+}
+
+async function copyFileWithAbort(sourceAbsPath: string, destinationAbsPath: string, signal?: AbortSignal) {
+  throwIfAborted(signal)
+
+  try {
+    await pipeline(
+      createReadStream(sourceAbsPath),
+      createWriteStream(destinationAbsPath, { flags: 'w' }),
+      { signal }
+    )
+  } catch (error: unknown) {
+    await rm(destinationAbsPath, { force: true }).catch(() => undefined)
+    if ((error as NodeJS.ErrnoException).code === 'ABORT_ERR' || signal?.aborted) {
+      throwIfAborted(signal)
+    }
+    throw error
+  }
+}
+
+async function copyEntryWithMerge(
+  sourceAbsPath: string,
+  destinationAbsPath: string,
+  overwriteExisting: boolean,
+  state: CopyState,
+  signal?: AbortSignal
+): Promise<CopyStats> {
+  throwIfAborted(signal)
+
+  const sourceStats = await stat(sourceAbsPath)
+  const destinationStats = await statSafe(destinationAbsPath)
+
+  if (sourceStats.isDirectory()) {
+    if (destinationStats) {
+      if (!destinationStats.isDirectory()) {
+        if (!overwriteExisting) {
+          const skippedFiles = await countFilesRecursive(sourceAbsPath)
+          state.skipped += skippedFiles
+          state.processedFiles += skippedFiles
+          emitProgress(state, sourceAbsPath)
+          return { copiedFiles: 0, copiedDirectories: 0, skipped: skippedFiles }
+        }
+        await rm(destinationAbsPath, { recursive: true, force: false })
+        await mkdir(destinationAbsPath, { recursive: true })
+      }
+    } else {
+      await mkdir(destinationAbsPath, { recursive: true })
+    }
+
+    const children = await readdir(sourceAbsPath, { withFileTypes: true })
+    const total: CopyStats = {
+      copiedFiles: 0,
+      copiedDirectories: 1,
+      skipped: 0
+    }
+    state.copiedDirectories += 1
+
+    for (const child of children) {
+      throwIfAborted(signal)
+      const result = await copyEntryWithMerge(
+        resolve(sourceAbsPath, child.name),
+        resolve(destinationAbsPath, child.name),
+        overwriteExisting,
+        state,
+        signal
+      )
+      total.copiedFiles += result.copiedFiles
+      total.copiedDirectories += result.copiedDirectories
+      total.skipped += result.skipped
+    }
+
+    return total
+  }
+
+  if (destinationStats) {
+    if (destinationStats.isDirectory()) {
+      if (!overwriteExisting) {
+        state.skipped += 1
+        state.processedFiles += 1
+        emitProgress(state, sourceAbsPath)
+        return { copiedFiles: 0, copiedDirectories: 0, skipped: 1 }
+      }
+
+      await rm(destinationAbsPath, { recursive: true, force: false })
+    } else if (!overwriteExisting) {
+      state.skipped += 1
+      state.processedFiles += 1
+      emitProgress(state, sourceAbsPath)
+      return { copiedFiles: 0, copiedDirectories: 0, skipped: 1 }
+    }
+  }
+
+  await copyFileWithAbort(sourceAbsPath, destinationAbsPath, signal)
+  state.copiedFiles += 1
+  state.processedFiles += 1
+  emitProgress(state, sourceAbsPath)
+
+  return {
+    copiedFiles: 1,
+    copiedDirectories: 0,
+    skipped: 0
+  }
+}
+
 export async function deletePath(rootId: string, relativePath: string) {
   const target = resolveWithinRoot(rootId, relativePath)
   const targetStats = await stat(target.absPath)
@@ -256,7 +450,10 @@ export async function copyPath(
   fromPath: string,
   toRootId: string,
   toDirectoryPath: string,
-  newName?: string
+  newName?: string,
+  overwriteExisting = true,
+  signal?: AbortSignal,
+  onProgress?: (progress: CopyProgress) => void
 ) {
   const source = resolveWithinRoot(fromRootId, fromPath)
   const sourceStats = await stat(source.absPath)
@@ -276,13 +473,52 @@ export async function copyPath(
     : targetName
 
   const destination = resolveWithinRoot(toRootId, destinationRelativePath)
-  await ensureDestinationFree(destination.absPath)
+  if (source.absPath === destination.absPath) {
+    throw createError({ statusCode: 400, statusMessage: 'Source and destination are the same' })
+  }
 
-  await cp(source.absPath, destination.absPath, {
-    recursive: sourceStats.isDirectory(),
-    force: false,
-    errorOnExist: true
+  if (!sourceStats.isDirectory()) {
+    const destinationExists = await pathExists(destination.absPath)
+    if (destinationExists && !overwriteExisting) {
+      onProgress?.({
+        totalFiles: 1,
+        processedFiles: 1,
+        copiedFiles: 0,
+        skipped: 1,
+        currentFile: basename(source.absPath)
+      })
+      return { copiedFiles: 0, copiedDirectories: 0, skipped: 1 }
+    }
+  }
+
+  const totalFiles = sourceStats.isDirectory() ? await countFilesRecursive(source.absPath) : 1
+  const state: CopyState = {
+    sourceRootAbsPath: source.absPath,
+    totalFiles,
+    processedFiles: 0,
+    copiedFiles: 0,
+    copiedDirectories: 0,
+    skipped: 0,
+    onProgress
+  }
+
+  onProgress?.({
+    totalFiles: state.totalFiles,
+    processedFiles: 0,
+    copiedFiles: 0,
+    skipped: 0,
+    currentFile: ''
   })
+
+  const result = await copyEntryWithMerge(source.absPath, destination.absPath, overwriteExisting, state, signal)
+  onProgress?.({
+    totalFiles: state.totalFiles,
+    processedFiles: state.processedFiles,
+    copiedFiles: state.copiedFiles,
+    skipped: state.skipped,
+    currentFile: ''
+  })
+  return result
 }
 
 export async function movePath(

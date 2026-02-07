@@ -88,6 +88,10 @@ export function useFileManagerPanels() {
     return panel.path ? `${rootName}:/${panel.path}` : `${rootName}:/`
   }
 
+  function getRootName(rootId: string) {
+    return rootsMap.value.get(rootId) || rootId
+  }
+
   function pathParts(panel: PanelState) {
     if (!panel.rootId) {
       return []
@@ -531,6 +535,7 @@ export function useFileManagerPanels() {
     activePanel,
     passivePanel,
     panelTitle,
+    getRootName,
     formatSize,
     formatDate,
     selectedEntry,
