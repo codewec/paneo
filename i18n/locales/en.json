@@ -100,6 +100,7 @@
     "fileCreated": "File created"
   },
   "confirm": {
-    "delete": "Delete {name}?"
+    "delete": "Delete {name}?",
+    "deleteMultiple": "Delete selected items ({count})?"
   }
 }

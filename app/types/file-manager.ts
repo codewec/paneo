@@ -38,6 +38,7 @@ export interface PanelState {
   parentPath: string | null
   entries: PanelEntry[]
   selectedKey: string | null
+  markedKeys: string[]
   loading: boolean
   error: string
 }

@@ -102,6 +102,7 @@
     "fileCreated": "Файл создан"
   },
   "confirm": {
-    "delete": "Удалить {name}?"
+    "delete": "Удалить {name}?",
+    "deleteMultiple": "Удалить выбранные элементы ({count})?"
   }
 }

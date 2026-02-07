@@ -9,6 +9,7 @@ function createPanel(id: 'left' | 'right'): PanelState {
     parentPath: null,
     entries: [],
     selectedKey: null,
+    markedKeys: [],
     loading: false,
     error: ''
   })
@@ -218,6 +219,34 @@ export function useFileManagerPanels() {
     return panel.selectedKey === entry.key
   }
 
+  function isMarkable(entry: PanelEntry) {
+    return entry.kind === 'file' || entry.kind === 'dir'
+  }
+
+  function isMarked(panel: PanelState, entry: PanelEntry) {
+    return panel.markedKeys.includes(entry.key)
+  }
+
+  function clearMarked(panel: PanelState) {
+    panel.markedKeys = []
+  }
+
+  function getActionEntries(panel: PanelState) {
+    if (panel.markedKeys.length) {
+      const markedEntries = panel.entries.filter(entry => panel.markedKeys.includes(entry.key) && isMarkable(entry))
+      if (markedEntries.length) {
+        return markedEntries
+      }
+    }
+
+    const current = selectedEntry(panel)
+    if (!current || !isMarkable(current)) {
+      return []
+    }
+
+    return [current]
+  }
+
   function selectedIndex(panel: PanelState) {
     if (!panel.selectedKey) {
       return -1
@@ -267,6 +296,7 @@ export function useFileManagerPanels() {
   function selectByIndex(panel: PanelState, index: number) {
     if (!panel.entries.length) {
       panel.selectedKey = null
+      clearMarked(panel)
       return
     }
 
@@ -354,6 +384,7 @@ export function useFileManagerPanels() {
         panel.entries = buildRootEntries()
         panel.parentPath = null
         panel.selectedKey = panel.entries[0]?.key || null
+        clearMarked(panel)
         ensureSelectionVisible(panel)
         return
       }
@@ -380,6 +411,7 @@ export function useFileManagerPanels() {
 
       panel.parentPath = response.parentPath
       panel.path = response.path
+      clearMarked(panel)
 
       if (options?.preferredSelectedPath) {
         const preferred = panel.entries.find(entry => entry.path === options.preferredSelectedPath)
@@ -396,6 +428,7 @@ export function useFileManagerPanels() {
       panel.error = getErrorMessage(error)
       panel.entries = []
       panel.selectedKey = null
+      clearMarked(panel)
       throw error
     } finally {
       panel.loading = false
@@ -430,6 +463,7 @@ export function useFileManagerPanels() {
       parentPath: panel.parentPath,
       entries: [...panel.entries],
       selectedKey: panel.selectedKey,
+      markedKeys: [...panel.markedKeys],
       error: panel.error
     }
   }
@@ -440,6 +474,7 @@ export function useFileManagerPanels() {
     panel.parentPath = snapshot.parentPath
     panel.entries = snapshot.entries
     panel.selectedKey = snapshot.selectedKey
+    panel.markedKeys = snapshot.markedKeys
     panel.error = snapshot.error
     ensureSelectionVisible(panel)
   }
@@ -502,6 +537,8 @@ export function useFileManagerPanels() {
     // On app load, selection should consistently start from the first row.
     leftPanel.selectedKey = leftPanel.entries[0]?.key || null
     rightPanel.selectedKey = rightPanel.entries[0]?.key || null
+    clearMarked(leftPanel)
+    clearMarked(rightPanel)
     ensureSelectionVisible(leftPanel)
     ensureSelectionVisible(rightPanel)
 
@@ -616,9 +653,40 @@ export function useFileManagerPanels() {
     })
   }
 
-  async function onEntryClick(panel: PanelState, entry: PanelEntry) {
+  async function onEntryClick(panel: PanelState, entry: PanelEntry, event?: MouseEvent) {
     selectPanel(panel)
+
+    const currentIndex = selectedIndex(panel)
+    const targetIndex = panel.entries.findIndex(item => item.key === entry.key)
+    if (targetIndex < 0) {
+      return
+    }
+
+    if (event?.shiftKey && currentIndex >= 0) {
+      const from = Math.min(currentIndex, targetIndex)
+      const to = Math.max(currentIndex, targetIndex)
+      const range = panel.entries.slice(from, to + 1).filter(isMarkable).map(item => item.key)
+      panel.markedKeys = range
+      panel.selectedKey = entry.key
+      ensureSelectionVisible(panel)
+      return
+    }
+
+    if (event?.ctrlKey) {
+      panel.selectedKey = entry.key
+      if (isMarkable(entry)) {
+        if (panel.markedKeys.includes(entry.key)) {
+          panel.markedKeys = panel.markedKeys.filter(key => key !== entry.key)
+        } else {
+          panel.markedKeys = [...panel.markedKeys, entry.key]
+        }
+      }
+      ensureSelectionVisible(panel)
+      return
+    }
+
     panel.selectedKey = entry.key
+    clearMarked(panel)
     ensureSelectionVisible(panel)
   }
 
@@ -641,9 +709,7 @@ export function useFileManagerPanels() {
   }
 
   async function onEntryDoubleClick(panel: PanelState, entry: PanelEntry) {
-    selectPanel(panel)
-    panel.selectedKey = entry.key
-    ensureSelectionVisible(panel)
+    await onEntryClick(panel, entry)
     await openEntry(panel, entry)
   }
 
@@ -662,6 +728,23 @@ export function useFileManagerPanels() {
 
   function getSelectedIndex(panel: PanelState) {
     return selectedIndex(panel)
+  }
+
+  function toggleMarkAndMoveNext(panel: PanelState) {
+    const current = selectedEntry(panel)
+    if (!current) {
+      return
+    }
+
+    if (isMarkable(current)) {
+      if (panel.markedKeys.includes(current.key)) {
+        panel.markedKeys = panel.markedKeys.filter(key => key !== current.key)
+      } else {
+        panel.markedKeys = [...panel.markedKeys, current.key]
+      }
+    }
+
+    moveSelection(panel, 1)
   }
 
   watch(
@@ -690,6 +773,8 @@ export function useFileManagerPanels() {
     formatDate,
     selectedEntry,
     isSelected,
+    isMarked,
+    getActionEntries,
     selectedMtime,
     visibleEntryCount,
     formatItemsCount,
@@ -700,6 +785,7 @@ export function useFileManagerPanels() {
     focusSelectedEntry,
     moveSelection,
     moveSelectionByPage,
+    toggleMarkAndMoveNext,
     loadPanel,
     initialize,
     selectPanel,

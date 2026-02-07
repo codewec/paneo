@@ -31,6 +31,7 @@ const {
   formatSize,
   formatDate,
   isSelected,
+  isMarked,
   selectedMtime,
   visibleEntryCount,
   formatItemsCount,
@@ -40,6 +41,7 @@ const {
   focusSelectedEntry,
   moveSelection,
   moveSelectionByPage,
+  toggleMarkAndMoveNext,
   loadPanel,
   initialize,
   selectPanel,
@@ -79,7 +81,9 @@ const {
   copyFromLabel,
   copyToLabel,
   deleteConfirmOpen,
-  deleteTarget,
+  deleteTargets,
+  isBulkDelete,
+  deletePrimaryName,
   deleteLoading,
   canEdit,
   canCopy,
@@ -112,21 +116,16 @@ const activePanelSelectedEntry = computed(() => {
   return panel.entries.find(entry => entry.key === panel.selectedKey) || null
 })
 
-const actionContext = computed(() => {
-  const selectedKind = activePanelSelectedEntry.value?.kind
-  const isFileSelected = selectedKind === 'file'
-  const hasFileSystemEntrySelected = selectedKind === 'file' || selectedKind === 'dir'
-  const hasOpenedRoot = !!activePanel.value.rootId
+const selectedKind = computed(() => activePanelSelectedEntry.value?.kind || null)
+const canUseFileActions = computed(() => selectedKind.value === 'file')
+const canUseEntryActions = computed(() => selectedKind.value === 'file' || selectedKind.value === 'dir')
 
-  return {
-    canView: isClientMounted.value && isFileSelected,
-    canEdit: isClientMounted.value && isFileSelected && canEdit.value,
-    canCopy: isClientMounted.value && hasFileSystemEntrySelected && canCopy.value,
-    canRename: isClientMounted.value && hasFileSystemEntrySelected && canRename.value,
-    canCreateDir: isClientMounted.value && hasOpenedRoot && hasFileSystemEntrySelected && canCreateDir.value,
-    canDelete: isClientMounted.value && hasFileSystemEntrySelected && canDelete.value
-  }
-})
+const canUseF3 = computed(() => isClientMounted.value && canUseFileActions.value)
+const canUseF4 = computed(() => isClientMounted.value && canUseFileActions.value && canEdit.value)
+const canUseF5 = computed(() => isClientMounted.value && canUseEntryActions.value && canCopy.value)
+const canUseF6 = computed(() => isClientMounted.value && canUseEntryActions.value && canRename.value)
+const canUseF7 = computed(() => isClientMounted.value && !!activePanel.value.rootId && canCreateDir.value)
+const canUseF8 = computed(() => isClientMounted.value && canUseEntryActions.value && canDelete.value)
 const copyProgressStatusLabel = computed(() => {
   const status = activeCopyTask.value?.status
   if (!status) {
@@ -249,16 +248,18 @@ useFileManagerHotkeys({
   onPageUp: () => moveSelectionByPage(activePanel.value, -1),
   onEnter: () => openSelectedEntry(activePanel.value),
   onF1: openSettings,
-  onF3: () => actionContext.value.canView ? openViewer() : Promise.resolve(),
-  onF4: () => actionContext.value.canEdit ? openEditor() : Promise.resolve(),
-  onF5: () => actionContext.value.canCopy ? Promise.resolve(openCopy()) : Promise.resolve(),
-  onF6: () => actionContext.value.canRename ? Promise.resolve(openRename()) : Promise.resolve(),
+  onF3: () => canUseF3.value ? openViewer() : Promise.resolve(),
+  onF4: () => canUseF4.value ? openEditor() : Promise.resolve(),
+  onF5: () => canUseF5.value ? Promise.resolve(openCopy()) : Promise.resolve(),
+  onF6: () => canUseF6.value ? Promise.resolve(openRename()) : Promise.resolve(),
   onF7: () => {
-    if (actionContext.value.canCreateDir) {
+    if (canUseF7.value) {
       openCreateDir()
     }
   },
-  onF8: () => actionContext.value.canDelete ? removeSelected() : Promise.resolve()
+  onF8: () => canUseF8.value ? removeSelected() : Promise.resolve(),
+  onInsert: () => toggleMarkAndMoveNext(activePanel.value),
+  onT: () => toggleMarkAndMoveNext(activePanel.value)
 })
 
 watch(createDirOpen, (isOpen) => {
@@ -436,11 +437,15 @@ await initialize()
                 :data-entry-key="entry.key"
                 :color="isSelected(panel, entry)
                   ? (activePanelId === panel.id ? 'primary' : 'neutral')
-                  : 'neutral'"
+                  : isMarked(panel, entry)
+                    ? 'warning'
+                    : 'neutral'"
                 :variant="isSelected(panel, entry)
                   ? (activePanelId === panel.id ? 'soft' : 'subtle')
-                  : 'ghost'"
-                @click.stop="onEntryClick(panel, entry)"
+                  : isMarked(panel, entry)
+                    ? 'soft'
+                    : 'ghost'"
+                @click.stop="onEntryClick(panel, entry, $event)"
                 @dblclick.stop="onEntryDoubleClick(panel, entry)"
               >
                 <template #leading>
@@ -473,68 +478,68 @@ await initialize()
       <UCard :ui="{ body: 'p-2' }">
         <ClientOnly>
           <div class="grid grid-cols-2 gap-2 md:grid-cols-7">
-          <UButton
-            :label="t('hotkeys.f1Settings')"
-            icon="i-lucide-settings"
-            color="neutral"
-            variant="outline"
-            class="justify-center"
-            @click="openSettings"
-          />
-          <UButton
-            :label="t('hotkeys.f3View')"
-            icon="i-lucide-eye"
-            color="neutral"
-            variant="outline"
-            class="justify-center"
-            :disabled="!actionContext.canView"
-            @click="openViewer"
-          />
-          <UButton
-            :label="t('hotkeys.f4Edit')"
-            icon="i-lucide-file-pen-line"
-            color="neutral"
-            variant="outline"
-            class="justify-center"
-            :disabled="!actionContext.canEdit"
-            @click="openEditor"
-          />
-          <UButton
-            :label="t('hotkeys.f5Copy')"
-            icon="i-lucide-copy"
-            color="neutral"
-            variant="outline"
-            class="justify-center"
-            :disabled="!actionContext.canCopy"
-            @click="openCopy"
-          />
-          <UButton
-            :label="t('hotkeys.f6Rename')"
-            icon="i-lucide-pencil"
-            color="neutral"
-            variant="outline"
-            class="justify-center"
-            :disabled="!actionContext.canRename"
-            @click="openRename"
-          />
-          <UButton
-            :label="t('hotkeys.f7Create')"
-            icon="i-lucide-folder-plus"
-            color="neutral"
-            variant="outline"
-            class="justify-center"
-            :disabled="!actionContext.canCreateDir"
-            @click="openCreateDir"
-          />
-          <UButton
-            :label="t('hotkeys.f8Delete')"
-            icon="i-lucide-trash-2"
-            color="error"
-            variant="outline"
-            class="justify-center"
-            :disabled="!actionContext.canDelete"
-            @click="removeSelected"
-          />
+            <UButton
+              :label="t('hotkeys.f1Settings')"
+              icon="i-lucide-settings"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              @click="openSettings"
+            />
+            <UButton
+              :label="t('hotkeys.f3View')"
+              icon="i-lucide-eye"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF3"
+              @click="openViewer"
+            />
+            <UButton
+              :label="t('hotkeys.f4Edit')"
+              icon="i-lucide-file-pen-line"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF4"
+              @click="openEditor"
+            />
+            <UButton
+              :label="t('hotkeys.f5Copy')"
+              icon="i-lucide-copy"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF5"
+              @click="openCopy"
+            />
+            <UButton
+              :label="t('hotkeys.f6Rename')"
+              icon="i-lucide-pencil"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF6"
+              @click="openRename"
+            />
+            <UButton
+              :label="t('hotkeys.f7Create')"
+              icon="i-lucide-folder-plus"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF7"
+              @click="openCreateDir"
+            />
+            <UButton
+              :label="t('hotkeys.f8Delete')"
+              icon="i-lucide-trash-2"
+              color="error"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF8"
+              @click="removeSelected"
+            />
           </div>
           <template #fallback>
             <div class="h-10" />
@@ -792,7 +797,9 @@ await initialize()
     >
       <template #body>
         <p class="text-sm text-muted">
-          {{ t('confirm.delete', { name: deleteTarget?.name || '' }) }}
+          {{ isBulkDelete
+            ? t('confirm.deleteMultiple', { count: deleteTargets.length })
+            : t('confirm.delete', { name: deletePrimaryName }) }}
         </p>
       </template>
       <template #footer>

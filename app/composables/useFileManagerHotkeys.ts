@@ -13,6 +13,8 @@ interface FileManagerHotkeysOptions {
   onF6: () => Promise<void>
   onF7: () => void
   onF8: () => Promise<void>
+  onInsert: () => void
+  onT: () => void
 }
 
 function isTypingElement(target: EventTarget | null) {
@@ -113,6 +115,18 @@ export function useFileManagerHotkeys(options: FileManagerHotkeysOptions) {
     if (event.key === 'F8') {
       event.preventDefault()
       await options.onF8()
+      return
+    }
+
+    if (event.key === 'Insert') {
+      event.preventDefault()
+      options.onInsert()
+      return
+    }
+
+    if (event.key.toLowerCase() === 't') {
+      event.preventDefault()
+      options.onT()
     }
   }
 

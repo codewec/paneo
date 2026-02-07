@@ -10,6 +10,7 @@ interface PanelsContext {
   leftPanel: PanelState
   rightPanel: PanelState
   selectedEntry: (panel: PanelState) => PanelEntry | null
+  getActionEntries: (panel: PanelState) => PanelEntry[]
   getRootName: (rootId: string) => string
   getSelectedIndex: (panel: PanelState) => number
   loadPanel: (panel: PanelState, options?: { preferredSelectedIndex?: number | null }) => Promise<void>
@@ -124,22 +125,25 @@ export function useFileManagerActions(panels: PanelsContext) {
   const activeCopyTaskId = ref<string | null>(null)
 
   const deleteConfirmOpen = ref(false)
-  const deleteTarget = ref<{ rootId: string, path: string, name: string } | null>(null)
+  const deleteTargets = ref<Array<{ rootId: string, path: string, name: string }>>([])
   const deleteLoading = ref(false)
 
   const fileMetaCache = ref(new Map<string, { mimeType: string, isText: boolean }>())
   const selectedFileMeta = ref<{ mimeType: string, isText: boolean } | null>(null)
   const selectedFileMetaLoading = ref(false)
 
-  const activeSelection = computed(() => panels.selectedEntry(panels.activePanel.value))
+  const activeActionEntries = computed(() => panels.getActionEntries(panels.activePanel.value))
+  const activeSelection = computed(() => activeActionEntries.value[0] || null)
   const actionsDisabledByRootList = computed(() => !panels.activePanel.value.rootId)
+  const isBulkDelete = computed(() => deleteTargets.value.length > 1)
+  const deletePrimaryName = computed(() => deleteTargets.value[0]?.name || '')
 
   const canView = computed(() => {
     if (actionsDisabledByRootList.value) {
       return false
     }
 
-    return activeSelection.value?.kind === 'file'
+    return activeSelection.value?.kind === 'file' && activeActionEntries.value.length === 1
   })
 
   const canEdit = computed(() => canView.value && !!selectedFileMeta.value?.isText && !selectedFileMetaLoading.value)
@@ -153,7 +157,7 @@ export function useFileManagerActions(panels: PanelsContext) {
       return false
     }
 
-    return activeSelection.value?.kind === 'file' || activeSelection.value?.kind === 'dir'
+    return activeActionEntries.value.length > 0
   })
 
   const canCopy = computed(() => {
@@ -202,7 +206,7 @@ export function useFileManagerActions(panels: PanelsContext) {
       return false
     }
 
-    return activeSelection.value?.kind === 'file' || activeSelection.value?.kind === 'dir'
+    return activeActionEntries.value.length > 0
   })
 
   const canCreateDir = computed(() => !actionsDisabledByRootList.value)
@@ -211,7 +215,7 @@ export function useFileManagerActions(panels: PanelsContext) {
       return false
     }
 
-    return activeSelection.value?.kind === 'file' || activeSelection.value?.kind === 'dir'
+    return activeActionEntries.value.length > 0
   })
 
   const selectedFileMetaKey = computed(() => {
@@ -631,7 +635,7 @@ export function useFileManagerActions(panels: PanelsContext) {
 
     const sourcePanel = panels.activePanel.value
     const destinationPanel = panels.passivePanel.value
-    const entry = panels.selectedEntry(sourcePanel)
+    const entry = activeSelection.value
 
     if (!entry || !sourcePanel.rootId || entry.kind === 'root' || entry.kind === 'up') {
       return
@@ -668,7 +672,7 @@ export function useFileManagerActions(panels: PanelsContext) {
     }
 
     const panel = panels.activePanel.value
-    const entry = panels.selectedEntry(panel)
+    const entry = activeSelection.value
     if (!panel.rootId || !entry || (entry.kind !== 'file' && entry.kind !== 'dir')) {
       return
     }
@@ -862,33 +866,38 @@ export function useFileManagerActions(panels: PanelsContext) {
     }
 
     const panel = panels.activePanel.value
-    const entry = panels.selectedEntry(panel)
-
-    if (!entry || !panel.rootId || entry.kind === 'root' || entry.kind === 'up') {
+    if (!panel.rootId) {
       return
     }
 
-    deleteTarget.value = {
-      rootId: panel.rootId,
+    const entries = panels.getActionEntries(panel)
+    if (!entries.length) {
+      return
+    }
+
+    deleteTargets.value = entries.map(entry => ({
+      rootId: panel.rootId!,
       path: entry.path,
       name: entry.name
-    }
+    }))
     deleteConfirmOpen.value = true
   }
 
   async function confirmRemoveSelected() {
-    if (!deleteTarget.value) {
+    if (!deleteTargets.value.length) {
       return
     }
 
     deleteLoading.value = true
 
     try {
-      await api.remove(deleteTarget.value.rootId, deleteTarget.value.path)
+      for (const target of deleteTargets.value) {
+        await api.remove(target.rootId, target.path)
+      }
 
       toast.add({ title: t('toasts.deleted'), color: 'success' })
       deleteConfirmOpen.value = false
-      deleteTarget.value = null
+      deleteTargets.value = []
 
       const leftIndex = panels.getSelectedIndex(panels.leftPanel)
       const rightIndex = panels.getSelectedIndex(panels.rightPanel)
@@ -975,7 +984,9 @@ export function useFileManagerActions(panels: PanelsContext) {
     copyFromLabel,
     copyToLabel,
     deleteConfirmOpen,
-    deleteTarget,
+    deleteTargets,
+    isBulkDelete,
+    deletePrimaryName,
     deleteLoading,
     canView,
     canEdit,
