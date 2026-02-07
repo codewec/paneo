@@ -1,0 +1,63 @@
+{
+  "app": {
+    "description": "Two-pane file manager powered by Nuxt UI"
+  },
+  "panel": {
+    "sources": "Sources",
+    "left": "Left",
+    "right": "Right",
+    "items_one": "{count} item",
+    "items_other": "{count} items"
+  },
+  "hotkeys": {
+    "f1Settings": "F1 Settings",
+    "f3View": "F3 View",
+    "f4Edit": "F4 Edit",
+    "f5Copy": "F5 Copy",
+    "f6Move": "F6 Move",
+    "f7Folder": "F7 Folder",
+    "f8Delete": "F8 Delete"
+  },
+  "modal": {
+    "editor": "Editor: {name}",
+    "createFolder": "Create Folder",
+    "settings": "Settings"
+  },
+  "fields": {
+    "folderName": "Folder name"
+  },
+  "buttons": {
+    "save": "Save",
+    "create": "Create"
+  },
+  "settings": {
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "russian": "Russian",
+    "english": "English"
+  },
+  "loading": "Loading...",
+  "alerts": {
+    "noAccessFolder": "No access to folder"
+  },
+  "toasts": {
+    "openFileFailed": "Failed to open file",
+    "saveFailed": "Save error",
+    "saved": "File saved",
+    "openTargetSourceFirst": "Open destination source first",
+    "copyFailed": "Copy error",
+    "moveFailed": "Move error",
+    "copied": "Copied",
+    "moved": "Moved",
+    "deleteFailed": "Delete error",
+    "deleted": "Deleted",
+    "openSourceFirst": "Open source first",
+    "createFolderFailed": "Create folder error",
+    "folderCreated": "Folder created"
+  },
+  "confirm": {
+    "delete": "Delete {name}?"
+  }
+}

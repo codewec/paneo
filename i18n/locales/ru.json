@@ -1,0 +1,65 @@
+{
+  "app": {
+    "description": "Двухпанельный файловый менеджер на Nuxt UI"
+  },
+  "panel": {
+    "sources": "Источники",
+    "left": "Левая",
+    "right": "Правая",
+    "items_one": "{count} элемент",
+    "items_few": "{count} элемента",
+    "items_many": "{count} элементов",
+    "items_other": "{count} элемента"
+  },
+  "hotkeys": {
+    "f1Settings": "F1 Настройки",
+    "f3View": "F3 Просмотр",
+    "f4Edit": "F4 Редактировать",
+    "f5Copy": "F5 Копировать",
+    "f6Move": "F6 Переместить",
+    "f7Folder": "F7 Папка",
+    "f8Delete": "F8 Удалить"
+  },
+  "modal": {
+    "editor": "Редактор: {name}",
+    "createFolder": "Создать папку",
+    "settings": "Настройки"
+  },
+  "fields": {
+    "folderName": "Имя папки"
+  },
+  "buttons": {
+    "save": "Сохранить",
+    "create": "Создать"
+  },
+  "settings": {
+    "language": "Язык интерфейса",
+    "theme": "Тема",
+    "light": "Светлая",
+    "dark": "Темная",
+    "russian": "Русский",
+    "english": "English"
+  },
+  "loading": "Загрузка...",
+  "alerts": {
+    "noAccessFolder": "Нет доступа к папке"
+  },
+  "toasts": {
+    "openFileFailed": "Не удалось открыть файл",
+    "saveFailed": "Ошибка сохранения",
+    "saved": "Файл сохранен",
+    "openTargetSourceFirst": "Сначала откройте целевой источник",
+    "copyFailed": "Ошибка копирования",
+    "moveFailed": "Ошибка перемещения",
+    "copied": "Скопировано",
+    "moved": "Перемещено",
+    "deleteFailed": "Ошибка удаления",
+    "deleted": "Удалено",
+    "openSourceFirst": "Сначала откройте источник",
+    "createFolderFailed": "Ошибка создания папки",
+    "folderCreated": "Папка создана"
+  },
+  "confirm": {
+    "delete": "Удалить {name}?"
+  }
+}
