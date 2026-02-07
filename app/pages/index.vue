@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ComponentPublicInstance } from 'vue'
+
 const LOCALE_COOKIE_KEY = 'paneo.locale'
 const SUPPORTED_LOCALES = ['ru', 'en', 'zh-Hant', 'de', 'es'] as const
 type LocaleCode = typeof SUPPORTED_LOCALES[number]
@@ -14,7 +16,7 @@ const localeCookie = useCookie<string | null>(LOCALE_COOKIE_KEY, {
 })
 const savedLocale = localeCookie.value
 if (savedLocale && SUPPORTED_LOCALES.includes(savedLocale as LocaleCode) && savedLocale !== locale.value) {
-  await setLocale(savedLocale)
+  await setLocale(savedLocale as LocaleCode)
 }
 
 const settingsOpen = ref(false)
@@ -34,22 +36,21 @@ const panelDragDepth = reactive<Record<'left' | 'right', number>>({
   right: 0
 })
 
-interface DndEntry {
-  isFile: boolean
-  isDirectory: boolean
-  name: string
+type DndEntry = FileSystemEntry
+type DndFileEntry = FileSystemFileEntry
+type DndDirectoryReader = FileSystemDirectoryReader
+type DndDirectoryEntry = FileSystemDirectoryEntry
+
+function isDndEntry(entry: FileSystemEntry | null): entry is DndEntry {
+  return entry !== null
 }
 
-interface DndFileEntry extends DndEntry {
-  file: (success: (file: File) => void, error?: (error: unknown) => void) => void
-}
+function setPanelListRef(panelId: 'left' | 'right', el: Element | ComponentPublicInstance | null) {
+  const element = el && '$el' in el
+    ? ((el.$el as Element | undefined) ?? null)
+    : el
 
-interface DndDirectoryReader {
-  readEntries: (success: (entries: DndEntry[]) => void, error?: (error: unknown) => void) => void
-}
-
-interface DndDirectoryEntry extends DndEntry {
-  createReader: () => DndDirectoryReader
+  setListRef(panelId, element)
 }
 
 const {
@@ -358,10 +359,10 @@ async function extractDroppedFiles(event: DragEvent) {
 
     const entries = items
       .map((item) => {
-        const webkitItem = item as DataTransferItem & { webkitGetAsEntry?: () => DndEntry | null }
+        const webkitItem = item as DataTransferItem & { webkitGetAsEntry?: () => FileSystemEntry | null }
         return webkitItem.webkitGetAsEntry?.() || null
       })
-      .filter((entry): entry is DndEntry => !!entry)
+      .filter(isDndEntry)
 
     const hasDirectory = entries.some(entry => entry.isDirectory)
     if (!hasDirectory && plainFiles.length) {
@@ -772,7 +773,7 @@ await initialize()
               </div>
 
               <div
-                :ref="(el) => setListRef(panel.id, el)"
+                :ref="(el: Element | ComponentPublicInstance | null) => setPanelListRef(panel.id, el)"
                 :class="[
                   'h-full space-y-1 overflow-auto -mr-2 pr-2',
                   activePanelId !== panel.id ? 'opacity-65' : ''

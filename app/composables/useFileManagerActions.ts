@@ -1,4 +1,4 @@
-import type { PanelEntry, PanelState } from '~/types/file-manager'
+import type { LoadPanelOptions, PanelEntry, PanelState } from '~/types/file-manager'
 import type { ComputedRef } from 'vue'
 import { h } from 'vue'
 import { UProgress } from '#components'
@@ -14,7 +14,7 @@ interface PanelsContext {
   getRootName: (rootId: string) => string
   getSelectedIndex: (panel: PanelState) => number
   clearMarked: (panel: PanelState) => void
-  loadPanel: (panel: PanelState, options?: { preferredSelectedIndex?: number | null }) => Promise<void>
+  loadPanel: (panel: PanelState, options?: LoadPanelOptions) => Promise<void>
 }
 
 type CopyTaskStatus = 'running' | 'completed' | 'failed' | 'canceled'
