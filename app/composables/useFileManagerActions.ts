@@ -104,6 +104,7 @@ export function useFileManagerActions(panels: PanelsContext) {
 
   const createDirOpen = ref(false)
   const createDirName = ref('')
+  const createAsFile = ref(false)
 
   const copyConfirmOpen = ref(false)
   const copyOverwriteExisting = ref(true)
@@ -915,6 +916,7 @@ export function useFileManagerActions(panels: PanelsContext) {
     }
 
     createDirName.value = ''
+    createAsFile.value = false
     createDirOpen.value = true
   }
 
@@ -926,17 +928,21 @@ export function useFileManagerActions(panels: PanelsContext) {
     }
 
     try {
-      await api.mkdir(panel.rootId, panel.path, createDirName.value)
+      if (createAsFile.value) {
+        await api.createFile(panel.rootId, panel.path, createDirName.value)
+      } else {
+        await api.mkdir(panel.rootId, panel.path, createDirName.value)
+      }
 
       createDirOpen.value = false
-      toast.add({ title: t('toasts.folderCreated'), color: 'success' })
+      toast.add({ title: createAsFile.value ? t('toasts.fileCreated') : t('toasts.folderCreated'), color: 'success' })
       const currentIndex = panels.getSelectedIndex(panel)
       await panels.loadPanel(panel, {
         preferredSelectedIndex: currentIndex >= 0 ? currentIndex : null
       })
     } catch (error) {
       toast.add({
-        title: t('toasts.createFolderFailed'),
+        title: createAsFile.value ? t('toasts.createFileFailed') : t('toasts.createFolderFailed'),
         description: getErrorMessage(error),
         color: 'error'
       })
@@ -954,6 +960,7 @@ export function useFileManagerActions(panels: PanelsContext) {
     editorSaving,
     createDirOpen,
     createDirName,
+    createAsFile,
     copyConfirmOpen,
     copyOverwriteExisting,
     copyDeleteSource,

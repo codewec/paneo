@@ -54,6 +54,17 @@ export function useFileManagerApi() {
     })
   }
 
+  async function createFile(rootId: string, path: string, name: string) {
+    return await $fetch('/api/fs/create-file', {
+      method: 'POST',
+      body: {
+        rootId,
+        path,
+        name
+      }
+    })
+  }
+
   async function remove(rootId: string, path: string) {
     return await $fetch('/api/fs/delete', {
       method: 'POST',
@@ -153,6 +164,7 @@ export function useFileManagerApi() {
     readText,
     writeText,
     mkdir,
+    createFile,
     remove,
     copy,
     startCopy,

@@ -53,6 +53,7 @@ const {
   editorSaving,
   createDirOpen,
   createDirName,
+  createAsFile,
   copyConfirmOpen,
   copyOverwriteExisting,
   copyDeleteSource,
@@ -477,7 +478,7 @@ await initialize()
             @click="openRename"
           />
           <UButton
-            :label="t('hotkeys.f7Folder')"
+            :label="t('hotkeys.f7Create')"
             icon="i-lucide-folder-plus"
             color="neutral"
             variant="outline"
@@ -712,17 +713,23 @@ await initialize()
 
     <UModal
       v-model:open="createDirOpen"
-      :title="t('modal.createFolder')"
+      :title="t('modal.create')"
     >
       <template #body>
-        <UInput
-          ref="createDirInputRef"
-          v-model="createDirName"
-          class="w-full"
-          size="xl"
-          :placeholder="t('fields.folderName')"
-          @keydown.enter.prevent="createDir"
-        />
+        <div class="space-y-4">
+          <UInput
+            ref="createDirInputRef"
+            v-model="createDirName"
+            class="w-full"
+            size="xl"
+            :placeholder="t('fields.name')"
+            @keydown.enter.prevent="createDir"
+          />
+          <USwitch
+            v-model="createAsFile"
+            :label="t('fields.file')"
+          />
+        </div>
       </template>
       <template #footer>
         <div class="flex justify-end w-full">

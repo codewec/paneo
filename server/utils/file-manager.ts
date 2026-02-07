@@ -228,6 +228,24 @@ export async function createDirectory(rootId: string, basePath: string | null | 
   await mkdir(target.absPath)
 }
 
+export async function createFile(rootId: string, basePath: string | null | undefined, name: string) {
+  const cleanName = name.trim()
+  if (!cleanName || cleanName.includes('/') || cleanName.includes('\\')) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid file name' })
+  }
+
+  const base = resolveWithinRoot(rootId, basePath)
+  const baseStats = await stat(base.absPath)
+  if (!baseStats.isDirectory()) {
+    throw createError({ statusCode: 400, statusMessage: 'Base path is not a directory' })
+  }
+
+  const targetPath = base.relativePath ? `${base.relativePath}/${cleanName}` : cleanName
+  const target = resolveWithinRoot(rootId, targetPath)
+
+  await writeFile(target.absPath, '', { encoding: 'utf-8', flag: 'wx' })
+}
+
 async function ensureDestinationFree(absPath: string) {
   try {
     await access(absPath)

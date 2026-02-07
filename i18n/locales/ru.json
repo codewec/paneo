@@ -21,11 +21,12 @@
     "f4Edit": "F4 Редактировать",
     "f5Copy": "F5 Копировать",
     "f6Rename": "F6 Переименовать",
-    "f7Folder": "F7 Папка",
+    "f7Create": "F7 Создать",
     "f8Delete": "F8 Удалить"
   },
   "modal": {
     "editor": "Редактор: {name}",
+    "create": "Создать",
     "createFolder": "Создать папку",
     "settings": "Настройки",
     "delete": "Удаление",
@@ -35,6 +36,8 @@
     "rename": "Переименование"
   },
   "fields": {
+    "name": "Имя",
+    "file": "Файл",
     "folderName": "Имя папки",
     "newName": "Новое имя"
   },
@@ -94,7 +97,9 @@
     "deleted": "Удалено",
     "openSourceFirst": "Сначала откройте источник",
     "createFolderFailed": "Ошибка создания папки",
-    "folderCreated": "Папка создана"
+    "createFileFailed": "Ошибка создания файла",
+    "folderCreated": "Папка создана",
+    "fileCreated": "Файл создан"
   },
   "confirm": {
     "delete": "Удалить {name}?"
