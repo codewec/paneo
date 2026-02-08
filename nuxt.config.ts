@@ -13,7 +13,11 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
-    fileManagerRoots: process.env.FILE_MANAGER_ROOTS || ''
+    fileManagerRoots: process.env.FILE_MANAGER_ROOTS || '',
+    public: {
+      uploadChunkSizeMb: Number(process.env.NUXT_PUBLIC_UPLOAD_CHUNK_SIZE_MB || 1),
+      uploadChunkDelayMs: Number(process.env.NUXT_PUBLIC_UPLOAD_CHUNK_DELAY_MS || 10)
+    }
   },
 
   compatibilityDate: '2025-01-15',

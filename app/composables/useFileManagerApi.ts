@@ -1,7 +1,15 @@
 import type { ListResponse, RootItem } from '~/types/file-manager'
 
 export function useFileManagerApi() {
-  const UPLOAD_CHUNK_SIZE = 8 * 1024 * 1024
+  const runtimeConfig = useRuntimeConfig()
+  const rawChunkSizeMb = Number(runtimeConfig.public.uploadChunkSizeMb)
+  const uploadChunkSizeMb = Number.isFinite(rawChunkSizeMb) && rawChunkSizeMb > 0 ? rawChunkSizeMb : 1
+  const UPLOAD_CHUNK_SIZE = Math.max(256 * 1024, Math.floor(uploadChunkSizeMb * 1024 * 1024))
+
+  const rawChunkDelayMs = Number(runtimeConfig.public.uploadChunkDelayMs)
+  const UPLOAD_CHUNK_DELAY_MS = Number.isFinite(rawChunkDelayMs) && rawChunkDelayMs >= 0
+    ? Math.floor(rawChunkDelayMs)
+    : 10
 
   interface UploadProgress {
     totalFiles: number
@@ -14,6 +22,16 @@ export function useFileManagerApi() {
   interface UploadOptions {
     signal?: AbortSignal
     onProgress?: (progress: UploadProgress) => void
+  }
+
+  function sleep(ms: number) {
+    if (ms <= 0) {
+      return Promise.resolve()
+    }
+
+    return new Promise<void>((resolve) => {
+      setTimeout(resolve, ms)
+    })
   }
 
   async function fetchRoots() {
@@ -129,6 +147,9 @@ export function useFileManagerApi() {
           totalBytes,
           uploadedBytes
         })
+        if (UPLOAD_CHUNK_DELAY_MS > 0 && chunkIndex < totalChunks - 1) {
+          await sleep(UPLOAD_CHUNK_DELAY_MS)
+        }
       }
     }
 
