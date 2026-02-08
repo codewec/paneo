@@ -68,7 +68,9 @@
     "refresh": "Обновить",
     "upload": "Загрузить",
     "download": "Скачать",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "scrollLeft": "Прокрутить влево",
+    "scrollRight": "Прокрутить вправо"
   },
   "upload": {
     "selectedCount_one": "Выбрано: {count} элемент",

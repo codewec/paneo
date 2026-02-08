@@ -66,7 +66,9 @@
     "refresh": "Aktualisieren",
     "upload": "Hochladen",
     "download": "Herunterladen",
-    "close": "Schließen"
+    "close": "Schließen",
+    "scrollLeft": "Nach links scrollen",
+    "scrollRight": "Nach rechts scrollen"
   },
   "upload": {
     "selectedCount_one": "Ausgewählt: {count} Element",

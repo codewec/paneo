@@ -26,3 +26,12 @@
   white-space: nowrap;
   direction: rtl;
 }
+
+.paneo-hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.paneo-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

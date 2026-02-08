@@ -36,6 +36,18 @@ const panelDragDepth = reactive<Record<'left' | 'right', number>>({
   left: 0,
   right: 0
 })
+const pathScrollRefs = reactive<Record<'left' | 'right', HTMLElement | null>>({
+  left: null,
+  right: null
+})
+const pathCanScrollLeft = reactive<Record<'left' | 'right', boolean>>({
+  left: false,
+  right: false
+})
+const pathCanScrollRight = reactive<Record<'left' | 'right', boolean>>({
+  left: false,
+  right: false
+})
 
 const INTERNAL_PANEL_DND_TYPE = 'application/x-paneo-panel-dnd'
 
@@ -54,6 +66,66 @@ function setPanelListRef(panelId: 'left' | 'right', el: Element | ComponentPubli
     : el
 
   setListRef(panelId, element)
+}
+
+function setPathScrollRef(panelId: 'left' | 'right', el: Element | ComponentPublicInstance | null) {
+  const element = el && '$el' in el
+    ? ((el.$el as HTMLElement | undefined) ?? null)
+    : (el as HTMLElement | null)
+
+  pathScrollRefs[panelId] = element
+  updatePathScrollState(panelId)
+}
+
+function updatePathScrollState(panelId: 'left' | 'right') {
+  const element = pathScrollRefs[panelId]
+  if (!element) {
+    pathCanScrollLeft[panelId] = false
+    pathCanScrollRight[panelId] = false
+    return
+  }
+
+  const maxScrollLeft = Math.max(0, element.scrollWidth - element.clientWidth)
+  pathCanScrollLeft[panelId] = element.scrollLeft > 0
+  pathCanScrollRight[panelId] = element.scrollLeft < maxScrollLeft - 1
+}
+
+function scrollPathToEnd(panelId: 'left' | 'right') {
+  const element = pathScrollRefs[panelId]
+  if (!element) {
+    return
+  }
+
+  element.scrollLeft = element.scrollWidth
+  updatePathScrollState(panelId)
+}
+
+function scrollPathBy(panelId: 'left' | 'right', direction: 'left' | 'right') {
+  const element = pathScrollRefs[panelId]
+  if (!element) {
+    return
+  }
+
+  const step = Math.max(120, Math.round(element.clientWidth * 0.45))
+  element.scrollBy({
+    left: direction === 'left' ? -step : step,
+    behavior: 'smooth'
+  })
+}
+
+function onPathWheel(panelId: 'left' | 'right', event: WheelEvent) {
+  const element = pathScrollRefs[panelId]
+  if (!element) {
+    return
+  }
+
+  const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+  if (!delta) {
+    return
+  }
+
+  element.scrollLeft += delta
+  updatePathScrollState(panelId)
 }
 
 const {
@@ -892,15 +964,39 @@ watch(favoritesOpen, (isOpen) => {
   window.removeEventListener('keydown', handleFavoritesModalKeydown, true)
 })
 
+watch(() => [leftPanel.rootId, leftPanel.path], () => {
+  nextTick(() => {
+    scrollPathToEnd('left')
+  })
+})
+
+watch(() => [rightPanel.rootId, rightPanel.path], () => {
+  nextTick(() => {
+    scrollPathToEnd('right')
+  })
+})
+
+function handleWindowResize() {
+  updatePathScrollState('left')
+  updatePathScrollState('right')
+}
+
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleDeleteConfirmEnter, true)
   window.removeEventListener('keydown', handleDownloadConfirmEnter, true)
   window.removeEventListener('keydown', handleCopyConfirmEnter, true)
   window.removeEventListener('keydown', handleFavoritesModalKeydown, true)
+  window.removeEventListener('resize', handleWindowResize)
 })
 
 onMounted(() => {
   isClientMounted.value = true
+  window.addEventListener('resize', handleWindowResize)
+
+  nextTick(() => {
+    scrollPathToEnd('left')
+    scrollPathToEnd('right')
+  })
 })
 
 watch(locale, (value) => {
@@ -943,7 +1039,7 @@ await refreshFavorites()
             >
               <template #header>
                 <div class="flex items-center justify-between gap-2">
-                  <div class="min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+                  <div class="min-w-0 flex flex-1 items-center gap-1">
                     <UButton
                       icon="i-lucide-house"
                       size="xs"
@@ -953,36 +1049,80 @@ await refreshFavorites()
                       :title="t('panel.sources')"
                       @click.stop="openSources(panel)"
                     />
-                    <span
-                      v-if="panel.rootId"
-                      class="text-muted"
-                    >/</span>
-                    <span
-                      v-if="!panel.rootId"
-                      class="text-sm font-medium text-muted"
-                    >
-                      {{ panelTitle(panel) }}
-                    </span>
-                    <template v-else>
-                      <template
-                        v-for="(part, partIndex) in pathParts(panel)"
-                        :key="`${part.path || 'root'}-${partIndex}`"
-                      >
+                    <div class="relative min-w-0 flex-1">
+                      <div
+                        v-if="pathCanScrollLeft[panel.id]"
+                        class="pointer-events-none absolute inset-y-0 left-0 z-10 w-5 bg-gradient-to-r from-default to-transparent"
+                      />
+                      <div
+                        v-if="pathCanScrollRight[panel.id]"
+                        class="pointer-events-none absolute inset-y-0 right-0 z-10 w-5 bg-gradient-to-l from-default to-transparent"
+                      />
+
+                      <div class="absolute inset-y-0 left-0 z-20 flex items-center">
                         <UButton
+                          v-if="pathCanScrollLeft[panel.id]"
+                          icon="i-lucide-chevron-left"
                           size="xs"
                           color="neutral"
                           variant="ghost"
-                          class="shrink-0 px-1"
-                          @click.stop="navigateToPath(panel, part.path)"
-                        >
-                          {{ part.label }}
-                        </UButton>
+                          class="h-5 w-5 p-0"
+                          :title="t('buttons.scrollLeft')"
+                          @click.stop="scrollPathBy(panel.id, 'left')"
+                        />
+                      </div>
+
+                      <div class="absolute inset-y-0 right-0 z-20 flex items-center">
+                        <UButton
+                          v-if="pathCanScrollRight[panel.id]"
+                          icon="i-lucide-chevron-right"
+                          size="xs"
+                          color="neutral"
+                          variant="ghost"
+                          class="h-5 w-5 p-0"
+                          :title="t('buttons.scrollRight')"
+                          @click.stop="scrollPathBy(panel.id, 'right')"
+                        />
+                      </div>
+
+                      <div
+                        :ref="(el: Element | ComponentPublicInstance | null) => setPathScrollRef(panel.id, el)"
+                        class="paneo-hide-scrollbar min-w-0 overflow-x-auto whitespace-nowrap px-6"
+                        @scroll="updatePathScrollState(panel.id)"
+                        @wheel.prevent="onPathWheel(panel.id, $event)"
+                      >
                         <span
-                          v-if="partIndex < pathParts(panel).length - 1"
+                          v-if="panel.rootId"
                           class="text-muted"
                         >/</span>
-                      </template>
-                    </template>
+                        <span
+                          v-if="!panel.rootId"
+                          class="text-sm font-medium text-muted"
+                        >
+                          {{ panelTitle(panel) }}
+                        </span>
+                        <template v-else>
+                          <template
+                            v-for="(part, partIndex) in pathParts(panel)"
+                            :key="`${part.path || 'root'}-${partIndex}`"
+                          >
+                            <UButton
+                              size="xs"
+                              color="neutral"
+                              variant="ghost"
+                              class="shrink-0 px-1"
+                              @click.stop="navigateToPath(panel, part.path)"
+                            >
+                              {{ part.label }}
+                            </UButton>
+                            <span
+                              v-if="partIndex < pathParts(panel).length - 1"
+                              class="text-muted"
+                            >/</span>
+                          </template>
+                        </template>
+                      </div>
+                    </div>
                   </div>
                   <ClientOnly>
                     <div class="flex items-center gap-1">
