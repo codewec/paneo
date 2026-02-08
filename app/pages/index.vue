@@ -171,7 +171,7 @@ const deleteTargetPaths = computed(() => deleteTargets.value.map((target) => {
 }))
 
 const canUseF3 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value)
-const canUseF2 = computed(() => isClientMounted.value && !!activePanel.value.rootId && canUpload.value)
+const canUseF9 = computed(() => isClientMounted.value && !!activePanel.value.rootId && canUpload.value)
 const canUseF4 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value && canEdit.value)
 const canUseF5 = computed(() => isClientMounted.value && canUseEntryActions.value && canCopy.value)
 const canUseF6 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseEntryActions.value && canRename.value)
@@ -222,7 +222,7 @@ function openSettings() {
 }
 
 function openUploadModal() {
-  if (!canUseF2.value) {
+  if (!canUseF9.value) {
     return
   }
 
@@ -677,7 +677,6 @@ useFileManagerHotkeys({
   onPageUp: () => moveSelectionByPage(activePanel.value, -1),
   onEnter: () => openSelectedEntry(activePanel.value),
   onF1: openSettings,
-  onF2: openUploadModal,
   onF3: () => canUseF3.value ? openViewer() : Promise.resolve(),
   onF4: () => canUseF4.value ? openEditor() : Promise.resolve(),
   onF5: () => canUseF5.value ? Promise.resolve(openCopy()) : Promise.resolve(),
@@ -688,6 +687,7 @@ useFileManagerHotkeys({
     }
   },
   onF8: () => canUseF8.value ? removeSelected() : Promise.resolve(),
+  onF9: openUploadModal,
   onInsert: () => toggleMarkAndMoveNext(activePanel.value),
   onT: () => toggleMarkAndMoveNext(activePanel.value)
 })
@@ -945,15 +945,6 @@ await initialize()
               @click="openSettings"
             />
             <UButton
-              :label="t('hotkeys.f2Upload')"
-              icon="i-lucide-upload"
-              color="neutral"
-              variant="outline"
-              class="justify-center"
-              :disabled="!canUseF2"
-              @click="openUploadModal"
-            />
-            <UButton
               :label="t('hotkeys.f3View')"
               icon="i-lucide-eye"
               color="neutral"
@@ -1006,6 +997,15 @@ await initialize()
               class="justify-center"
               :disabled="!canUseF8"
               @click="removeSelected"
+            />
+            <UButton
+              :label="t('hotkeys.f9Upload')"
+              icon="i-lucide-upload"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF9"
+              @click="openUploadModal"
             />
           </div>
           <template #fallback>

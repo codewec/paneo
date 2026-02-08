@@ -7,13 +7,13 @@ interface FileManagerHotkeysOptions {
   onPageUp: () => void
   onEnter: () => Promise<void>
   onF1: () => void
-  onF2: () => void
   onF3: () => Promise<void>
   onF4: () => Promise<void>
   onF5: () => Promise<void>
   onF6: () => Promise<void>
   onF7: () => void
   onF8: () => Promise<void>
+  onF9: () => void
   onInsert: () => void
   onT: () => void
 }
@@ -83,9 +83,9 @@ export function useFileManagerHotkeys(options: FileManagerHotkeysOptions) {
       return
     }
 
-    if (event.key === 'F2') {
+    if (event.key === 'F9') {
       event.preventDefault()
-      options.onF2()
+      options.onF9()
       return
     }
 

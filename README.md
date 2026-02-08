@@ -168,4 +168,4 @@ pnpm build
 ### Browser Notes
 
 Drag-and-drop behavior may differ across browser/desktop combinations.
-If DnD is limited in your environment, use `F2 Upload` as fallback.
+If DnD is limited in your environment, use `F9 Upload` as fallback.
