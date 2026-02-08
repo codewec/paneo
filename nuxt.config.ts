@@ -15,6 +15,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     fileManagerRoots: process.env.FILE_MANAGER_ROOTS || '',
     public: {
+      paneoAuthPassword: process.env.NUXT_PUBLIC_PANEO_AUTH_PASSWORD || '',
       uploadChunkSizeMb: Number(process.env.NUXT_PUBLIC_UPLOAD_CHUNK_SIZE_MB || 1),
       uploadChunkDelayMs: Number(process.env.NUXT_PUBLIC_UPLOAD_CHUNK_DELAY_MS || 10)
     }
