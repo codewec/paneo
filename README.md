@@ -13,11 +13,11 @@
     <br/><br/>
     <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo1.png?raw=true" alt="Paneo" width="100%"/>
     <br/><br/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo2.png?raw=true" alt="Paneo" width="20%"/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo3.png?raw=true" alt="Paneo" width="20%"/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo4.png?raw=true" alt="Paneo" width="20%"/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo5.png?raw=true" alt="Paneo" width="20%"/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo6.png?raw=true" alt="Paneo" width="20%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo2.png?raw=true" alt="Paneo" width="50%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo3.png?raw=true" alt="Paneo" width="50%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo4.png?raw=true" alt="Paneo" width="50%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo5.png?raw=true" alt="Paneo" width="50%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo6.png?raw=true" alt="Paneo" width="50%"/>
 </p>
 
 
@@ -50,30 +50,95 @@ Minimal example:
 ```bash
 UID=1000
 GID=1000
-PANEO_SOURCE_1=/home/user/Documents
-PANEO_SOURCE_2=/mnt/storage
-FILE_MANAGER_ROOTS="docs=/data/source-1;storage=/data/source-2"
-PANEO_AUTH_PASSWORD=
-PANEO_AUTH_SECRET=
-PANEO_AUTH_COOKIE_SECURE=false
+HOST_DOCS=/home/user/Documents
+FILE_MANAGER_ROOTS="docs=/data/source-1"
 
 # Persist paneo internal data (favorites, service state)
 PANEO_DATA_DIR=./paneo-data
 ```
 
-`PANEO_SOURCE_1` and `PANEO_SOURCE_2` are required (no default fallback paths).
-If `PANEO_AUTH_PASSWORD` is empty, login is disabled.
+At least one host source variable is required.
+Variable names can be any names (for example `HOST_DOCS`, `HOST_MEDIA`, `DATA_A`), but names must match between `.env` and `docker-compose.yml`.
+
+Full example (with optional auth variables):
+
+```bash
+UID=1000
+GID=1000
+HOST_DOCS=/home/user/Documents
+HOST_MEDIA=/mnt/storage
+FILE_MANAGER_ROOTS="docs=/data/source-1;media=/data/source-2"
+PANEO_AUTH_PASSWORD=
+PANEO_AUTH_SECRET=
+PANEO_AUTH_COOKIE_SECURE=false
+PANEO_DATA_DIR=./paneo-data
+```
 
 ### 2) Mount a persistent data volume (recommended)
 
-Add this volume to `docker-compose.yml`:
+Minimal `docker-compose.yml` (one source, no auth):
+
+```yaml
+services:
+  paneo:
+    image: ghcr.io/codewec/paneo:latest
+    container_name: paneo
+    user: "${UID}:${GID}"
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      NITRO_PORT: 3000
+      NITRO_HOST: 0.0.0.0
+      NUXT_FILE_MANAGER_ROOTS: "${FILE_MANAGER_ROOTS}"
+    volumes:
+      - ${HOST_DOCS}:/data/source-1
+      - ${PANEO_DATA_DIR}:/app/.paneo
+```
+
+Full `docker-compose.yml` (two sources + optional auth vars):
+
+```yaml
+services:
+  paneo:
+    image: ghcr.io/codewec/paneo:latest
+    container_name: paneo
+    user: "${UID}:${GID}"
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      NITRO_PORT: 3000
+      NITRO_HOST: 0.0.0.0
+      NUXT_FILE_MANAGER_ROOTS: "${FILE_MANAGER_ROOTS}"
+      PANEO_AUTH_PASSWORD: "${PANEO_AUTH_PASSWORD}"
+      PANEO_AUTH_SECRET: "${PANEO_AUTH_SECRET}"
+      PANEO_AUTH_COOKIE_SECURE: "${PANEO_AUTH_COOKIE_SECURE}"
+    volumes:
+      - ${HOST_DOCS}:/data/source-1
+      - ${HOST_MEDIA}:/data/source-2
+      - ${PANEO_DATA_DIR}:/app/.paneo
+```
+
+You can use other source variable names. The important part is consistency between:
+
+- `.env`
+- `docker-compose.yml`
+
+For example, if you use `HOST_DOCS` in `.env`, use `${HOST_DOCS}` in `volumes`.
+
+Persistent data mount:
 
 ```yaml
 services:
   paneo:
     volumes:
-      - ${PANEO_SOURCE_1}:/data/source-1
-      - ${PANEO_SOURCE_2}:/data/source-2
       - ${PANEO_DATA_DIR}:/app/.paneo
 ```
 
@@ -149,8 +214,7 @@ Common `.env` variables:
 
 - `UID`
 - `GID`
-- `PANEO_SOURCE_1`
-- `PANEO_SOURCE_2`
+- host source variables (any names, at least one)
 - `FILE_MANAGER_ROOTS`
 - `PANEO_AUTH_PASSWORD` (optional)
 - `PANEO_AUTH_SECRET` (optional, recommended)
@@ -160,25 +224,27 @@ Common `.env` variables:
 Simple meaning:
 
 - `UID` and `GID` are your Linux user/group IDs. Container runs with them, so new files are created with your host user ownership.
-- `PANEO_SOURCE_1` and `PANEO_SOURCE_2` are folders on your host (your real disk).
-- Docker mounts them into the container as:
-  - `/data/source-1`
-  - `/data/source-2`
+- Host source variables are folders on your host (your real disk).
+- You can use any variable names, but they must match in both:
+  - `.env`
+  - `docker-compose.yml` volume definitions
 - `FILE_MANAGER_ROOTS` tells paneo what to show in the root list.
-- In `FILE_MANAGER_ROOTS` you must use container paths (`/data/source-1`, `/data/source-2`), not host paths.
+- In `FILE_MANAGER_ROOTS` you must use container paths (`/data/source-*`), not host paths.
 - `PANEO_AUTH_PASSWORD` enables authentication. Leave empty to disable auth.
 - `PANEO_AUTH_SECRET` signs auth session cookies. If not set, a fallback secret is derived from password.
 - `PANEO_AUTH_COOKIE_SECURE` controls the `secure` flag for auth cookie:
-  - `false` (default) for local HTTP
-  - `true` for HTTPS deployments
+  - use `true` only when app is served over HTTPS
+  - keep `false` for HTTP (including local/dev HTTP)
 - `PANEO_DATA_DIR` is a host folder mounted into `/app/.paneo` to persist paneo internal data.
 - Favorites file path is fixed internally as `/app/.paneo/favorites.json`.
 
 Important:
 
-1. A source folder must be mounted (`PANEO_SOURCE_1` / `PANEO_SOURCE_2`).
-2. The same mounted path must be listed in `FILE_MANAGER_ROOTS`.
-3. For persistent favorites, mount `PANEO_DATA_DIR` to `/app/.paneo`.
+1. At least one source folder must be mounted.
+2. Source variable names can be arbitrary, but must be consistent between `.env` and `docker-compose.yml`.
+3. Mounted container paths must be listed in `FILE_MANAGER_ROOTS`.
+4. `PANEO_AUTH_COOKIE_SECURE=true` should be used only for HTTPS.
+5. For persistent favorites, mount `PANEO_DATA_DIR` to `/app/.paneo`.
 
 If these paths do not match, source navigation or persistence will fail.
 
