@@ -9,12 +9,14 @@ const props = defineProps<{
   selectedLanguage: LocaleCode
   languageOptions: LocaleOption[]
   currentTheme: ThemeMode
+  canLogout: boolean
 }>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
   'update:selectedLanguage': [value: LocaleCode]
   'setTheme': [value: ThemeMode]
+  'logout': []
 }>()
 
 const { t } = useI18n()
@@ -71,6 +73,18 @@ const modelLanguage = computed({
             </UButton>
           </div>
         </div>
+      </div>
+    </template>
+    <template #footer>
+      <div class="flex w-full justify-end">
+        <UButton
+          v-if="canLogout"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-log-out"
+          :label="t('buttons.logout')"
+          @click="$emit('logout')"
+        />
       </div>
     </template>
   </UModal>

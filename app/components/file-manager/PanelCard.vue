@@ -130,17 +130,17 @@ function entryIcon(entry: PanelEntry) {
 
               <div
                 :ref="(el: Element | ComponentPublicInstance | null) => setPathScrollRef(panel.id, el)"
-                class="paneo-hide-scrollbar min-w-0 overflow-x-auto whitespace-nowrap px-6"
+                class="paneo-hide-scrollbar min-w-0 h-6 overflow-x-auto whitespace-nowrap px-6"
                 @scroll="updatePathScrollState(panel.id)"
                 @wheel.prevent="onPathWheel(panel.id, $event)"
               >
                 <span
                   v-if="panel.rootId"
-                  class="text-muted"
+                  class="inline-flex h-6 items-center text-muted"
                 >/</span>
                 <span
                   v-if="!panel.rootId"
-                  class="text-sm font-medium text-muted"
+                  class="inline-flex h-6 items-center px-1 text-sm font-medium text-muted"
                 >
                   {{ panelTitle }}
                 </span>

@@ -67,6 +67,7 @@
     "upload": "Upload",
     "download": "Download",
     "close": "Close",
+    "logout": "Logout",
     "scrollLeft": "Scroll left",
     "scrollRight": "Scroll right"
   },

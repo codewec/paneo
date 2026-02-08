@@ -18,6 +18,7 @@ It runs as a Nuxt 4 app and is intended to be deployed in Docker, with filesyste
 - Backend exposes `/api/fs/*` endpoints.
 - Filesystem operations are allowed only inside configured roots.
 - Roots are configured via `FILE_MANAGER_ROOTS`.
+- Optional auth is enabled only when `PANEO_AUTH_PASSWORD` is set.
 
 ## Root Configuration
 
@@ -39,7 +40,13 @@ Parsing rules:
 ## Key Directories
 
 - `app/pages/index.vue`
-  - page composition and UI layout
+  - file manager workspace page
+- `app/pages/auth.vue`
+  - auth page (SSR redirect target)
+- `app/components/file-manager/FileManagerWorkspace.vue`
+  - workspace orchestration (panels, hotkeys, modal wiring)
+- `app/components/file-manager/*`
+  - panel/action/startup/modal UI components
 - `app/composables/useFileManagerApi.ts`
   - frontend API client (`/api/fs/*`)
 - `app/composables/useFileManagerPanels.ts`
@@ -48,14 +55,26 @@ Parsing rules:
   - file actions, copy/upload tasks, action gating
 - `app/composables/useFileManagerFavorites.ts`
   - favorites state, modal actions, toggle/open logic
+- `app/composables/usePaneoAuth.ts`
+  - auth actions (login/logout)
 - `app/composables/useFileManagerHotkeys.ts`
   - global keyboard shortcuts
 - `server/utils/file-manager.ts`
   - secure filesystem logic (path normalization, root enforcement, operations)
 - `server/utils/favorites-store.ts`
   - favorites persistence (read/write/cleanup)
+- `server/utils/startup-status.ts`
+  - startup validation (env/access/warnings)
+- `server/utils/auth-session.ts`
+  - auth session signing/verification helpers
+- `server/middleware/auth-redirect.ts`
+  - SSR route guard (`/` <-> `/auth`)
+- `server/middleware/auth-api.ts`
+  - API auth guard (`/api/*`)
 - `server/api/fs/*.ts`
   - HTTP handlers
+- `server/api/system/startup.get.ts`
+  - startup status endpoint
 - `i18n/locales/*.json`
   - localization resources
 
@@ -83,6 +102,12 @@ Parsing rules:
 - star icon in row toggles favorite.
 - favorites modal can open/remove entries.
 - favorites are validated on server; missing/inaccessible entries are dropped.
+
+6. Auth
+- if `PANEO_AUTH_PASSWORD` is empty, app opens directly.
+- if it is set, unauthenticated users are SSR-redirected to `/auth`.
+- after successful login user is redirected back to `/`.
+- logout is available from Settings modal.
 
 ## Localization
 

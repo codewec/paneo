@@ -67,6 +67,7 @@
     "upload": "Subir",
     "download": "Descargar",
     "close": "Cerrar",
+    "logout": "Cerrar sesión",
     "scrollLeft": "Desplazar a la izquierda",
     "scrollRight": "Desplazar a la derecha"
   },

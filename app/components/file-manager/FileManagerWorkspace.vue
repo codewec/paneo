@@ -3,6 +3,7 @@ import type { ComponentPublicInstance } from 'vue'
 import type { PanelEntry } from '~/types/file-manager'
 import { SUPPORTED_LOCALES } from '~/types/locale'
 import type { LocaleCode } from '~/types/locale'
+import { canHandleDrop, extractDroppedFiles, fileUriToLocalPath, getInternalDragSourceId, parseDroppedUriList, setInternalDragSource } from '~/utils/file-manager-dnd'
 
 // This component orchestrates the full file manager workspace UI.
 // Page-level routing/auth is kept outside to make future auth flows simpler.
@@ -12,6 +13,7 @@ const panels = useFileManagerPanels()
 const api = useFileManagerApi()
 const { t, locale, setLocale } = useI18n()
 const colorMode = useColorMode()
+const { requiresPassword, logout } = usePaneoAuth()
 const localeCookie = useCookie<string | null>(LOCALE_COOKIE_KEY, {
   secure: false,
   sameSite: 'lax',
@@ -48,17 +50,6 @@ const pathCanScrollRight = reactive<Record<'left' | 'right', boolean>>({
   left: false,
   right: false
 })
-
-const INTERNAL_PANEL_DND_TYPE = 'application/x-paneo-panel-dnd'
-
-type DndEntry = FileSystemEntry
-type DndFileEntry = FileSystemFileEntry
-type DndDirectoryReader = FileSystemDirectoryReader
-type DndDirectoryEntry = FileSystemDirectoryEntry
-
-function isDndEntry(entry: FileSystemEntry | null): entry is DndEntry {
-  return entry !== null
-}
 
 function setPanelListRef(panelId: 'left' | 'right', el: Element | ComponentPublicInstance | null) {
   const element = el && '$el' in el
@@ -422,6 +413,12 @@ function setTheme(value: 'light' | 'dark') {
   currentTheme.value = value
 }
 
+async function logoutFromSettings() {
+  settingsOpen.value = false
+  await logout()
+  await navigateTo('/auth', { replace: true })
+}
+
 const languageOptions = computed(() => ([
   { label: `${t('settings.russian')} (Russian)`, value: 'ru' as const },
   { label: `${t('settings.english')} (English)`, value: 'en' as const },
@@ -458,25 +455,6 @@ function getOppositePanel(panel: typeof leftPanel) {
 
 function getPanelById(panelId: 'left' | 'right') {
   return panelId === 'left' ? leftPanel : rightPanel
-}
-
-function hasDataTransferType(dataTransfer: DataTransfer, type: string) {
-  const types = dataTransfer.types as unknown as { contains?: (value: string) => boolean }
-  if (typeof types?.contains === 'function') {
-    return types.contains(type)
-  }
-
-  return Array.from(dataTransfer.types || []).includes(type)
-}
-
-function getInternalDragSourceId(event: DragEvent): 'left' | 'right' | null {
-  const dataTransfer = event.dataTransfer
-  if (!dataTransfer || !hasDataTransferType(dataTransfer, INTERNAL_PANEL_DND_TYPE)) {
-    return null
-  }
-
-  const raw = dataTransfer.getData(INTERNAL_PANEL_DND_TYPE)
-  return raw === 'left' || raw === 'right' ? raw : null
 }
 
 function canCopyBetweenPanels(sourcePanel: typeof leftPanel, targetPanel: typeof leftPanel) {
@@ -521,7 +499,7 @@ function onEntryDragStart(panel: typeof leftPanel, entry: { key: string, kind: s
   }
   selectPanel(panel)
   dataTransfer.effectAllowed = 'copy'
-  dataTransfer.setData(INTERNAL_PANEL_DND_TYPE, panel.id)
+  setInternalDragSource(dataTransfer, panel.id)
 }
 
 function onEntryDragEnd() {
@@ -529,10 +507,6 @@ function onEntryDragEnd() {
   panelDragDepth.right = 0
   panelDragOver.left = false
   panelDragOver.right = false
-}
-
-function canHandleDrop(event: DragEvent) {
-  return !!event.dataTransfer
 }
 
 function onPanelDragEnter(panel: typeof leftPanel, event: DragEvent) {
@@ -572,123 +546,6 @@ function onPanelDragLeave(panel: typeof leftPanel, event: DragEvent) {
   panelDragDepth[panel.id] = Math.max(0, panelDragDepth[panel.id] - 1)
   if (panelDragDepth[panel.id] === 0) {
     panelDragOver[panel.id] = false
-  }
-}
-
-function readFileEntry(entry: DndFileEntry, basePath: string) {
-  return new Promise<File[]>((resolve, reject) => {
-    entry.file((file) => {
-      const relativePath = basePath ? `${basePath}/${file.name}` : file.name
-      ;(file as File & { __paneoRelativePath?: string }).__paneoRelativePath = relativePath
-      resolve([file])
-    }, reject)
-  })
-}
-
-function readDirectoryEntries(reader: DndDirectoryReader) {
-  return new Promise<DndEntry[]>((resolve, reject) => {
-    reader.readEntries(resolve, reject)
-  })
-}
-
-async function collectFilesFromEntry(entry: DndEntry, basePath = ''): Promise<File[]> {
-  if (entry.isFile) {
-    return await readFileEntry(entry as DndFileEntry, basePath)
-  }
-
-  if (!entry.isDirectory) {
-    return []
-  }
-
-  const directory = entry as DndDirectoryEntry
-  const reader = directory.createReader()
-  const nextBasePath = basePath ? `${basePath}/${directory.name}` : directory.name
-  const files: File[] = []
-
-  while (true) {
-    const entries = await readDirectoryEntries(reader)
-    if (!entries.length) {
-      break
-    }
-
-    for (const child of entries) {
-      const childFiles = await collectFilesFromEntry(child, nextBasePath)
-      files.push(...childFiles)
-    }
-  }
-
-  return files
-}
-
-async function extractDroppedFiles(event: DragEvent) {
-  const dataTransfer = event.dataTransfer
-  if (!dataTransfer) {
-    return []
-  }
-
-  const plainFiles = Array.from(dataTransfer.files || [])
-
-  try {
-    const items = Array.from(dataTransfer.items || [])
-    if (!items.length) {
-      return plainFiles
-    }
-
-    const entries = items
-      .map((item) => {
-        const webkitItem = item as DataTransferItem & { webkitGetAsEntry?: () => FileSystemEntry | null }
-        return webkitItem.webkitGetAsEntry?.() || null
-      })
-      .filter(isDndEntry)
-
-    const hasDirectory = entries.some(entry => entry.isDirectory)
-    if (!hasDirectory && plainFiles.length) {
-      return plainFiles
-    }
-
-    if (entries.length) {
-      const files: File[] = []
-      for (const entry of entries) {
-        const collected = await collectFilesFromEntry(entry)
-        files.push(...collected)
-      }
-
-      if (files.length) {
-        return files
-      }
-    }
-
-    if (plainFiles.length) {
-      return plainFiles
-    }
-  } catch {
-    // Fall back to plain FileList below.
-  }
-
-  return plainFiles
-}
-
-function parseDroppedUriList(raw: string) {
-  return raw
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line && !line.startsWith('#'))
-}
-
-function fileUriToLocalPath(uri: string) {
-  try {
-    const url = new URL(uri)
-    if (url.protocol !== 'file:') {
-      return null
-    }
-
-    if (url.hostname && url.hostname !== 'localhost') {
-      return null
-    }
-
-    return decodeURIComponent(url.pathname)
-  } catch {
-    return null
   }
 }
 
@@ -1175,7 +1032,9 @@ if (!hasStartupFatalErrors.value) {
       v-model:selected-language="selectedLanguage"
       :language-options="languageOptions"
       :current-theme="currentTheme"
+      :can-logout="requiresPassword"
       @set-theme="setTheme"
+      @logout="logoutFromSettings"
     />
   </div>
 </template>

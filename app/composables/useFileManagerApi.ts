@@ -1,6 +1,7 @@
 import type { FavoriteFolder, ListResponse, RootItem } from '~/types/file-manager'
 
 export function useFileManagerApi() {
+  const apiFetch = import.meta.server ? useRequestFetch() : $fetch
   const runtimeConfig = useRuntimeConfig()
   const rawChunkSizeMb = Number(runtimeConfig.public.uploadChunkSizeMb)
   const uploadChunkSizeMb = Number.isFinite(rawChunkSizeMb) && rawChunkSizeMb > 0 ? rawChunkSizeMb : 1
@@ -55,7 +56,7 @@ export function useFileManagerApi() {
       return
     }
 
-    await $fetch('/api/fs/upload-cancel', {
+    await apiFetch('/api/fs/upload-cancel', {
       method: 'POST',
       body: {
         rootId,
@@ -65,36 +66,36 @@ export function useFileManagerApi() {
   }
 
   async function fetchRoots() {
-    return await $fetch<{ roots: RootItem[] }>('/api/fs/roots')
+    return await apiFetch<{ roots: RootItem[] }>('/api/fs/roots')
   }
 
   async function fetchStartupStatus() {
-    return await $fetch<{
+    return await apiFetch<{
       fatalErrors: string[]
       warnings: string[]
       documentationUrl: string
     }>('/api/system/startup')
   }
   async function fetchFavorites() {
-    return await $fetch<{ items: FavoriteFolder[] }>('/api/fs/favorites')
+    return await apiFetch<{ items: FavoriteFolder[] }>('/api/fs/favorites')
   }
 
   async function addFavorite(rootId: string, path: string) {
-    return await $fetch<{ items: FavoriteFolder[] }>('/api/fs/favorites-add', {
+    return await apiFetch<{ items: FavoriteFolder[] }>('/api/fs/favorites-add', {
       method: 'POST',
       body: { rootId, path }
     })
   }
 
   async function removeFavorite(rootId: string, path: string) {
-    return await $fetch<{ items: FavoriteFolder[] }>('/api/fs/favorites-remove', {
+    return await apiFetch<{ items: FavoriteFolder[] }>('/api/fs/favorites-remove', {
       method: 'POST',
       body: { rootId, path }
     })
   }
 
   async function fetchList(rootId: string, path: string) {
-    return await $fetch<ListResponse>('/api/fs/list', {
+    return await apiFetch<ListResponse>('/api/fs/list', {
       query: {
         rootId,
         path
@@ -103,7 +104,7 @@ export function useFileManagerApi() {
   }
 
   async function readText(rootId: string, path: string) {
-    return await $fetch<{ content: string }>('/api/fs/read', {
+    return await apiFetch<{ content: string }>('/api/fs/read', {
       query: {
         rootId,
         path
@@ -112,7 +113,7 @@ export function useFileManagerApi() {
   }
 
   async function fetchMeta(rootId: string, path: string) {
-    return await $fetch<{ path: string, mimeType: string, isText: boolean }>('/api/fs/meta', {
+    return await apiFetch<{ path: string, mimeType: string, isText: boolean }>('/api/fs/meta', {
       query: {
         rootId,
         path
@@ -121,7 +122,7 @@ export function useFileManagerApi() {
   }
 
   async function writeText(rootId: string, path: string, content: string) {
-    return await $fetch('/api/fs/write', {
+    return await apiFetch('/api/fs/write', {
       method: 'POST',
       body: {
         rootId,
@@ -132,7 +133,7 @@ export function useFileManagerApi() {
   }
 
   async function mkdir(rootId: string, path: string, name: string) {
-    return await $fetch('/api/fs/mkdir', {
+    return await apiFetch('/api/fs/mkdir', {
       method: 'POST',
       body: {
         rootId,
@@ -143,7 +144,7 @@ export function useFileManagerApi() {
   }
 
   async function createFile(rootId: string, path: string, name: string) {
-    return await $fetch('/api/fs/create-file', {
+    return await apiFetch('/api/fs/create-file', {
       method: 'POST',
       body: {
         rootId,
@@ -178,7 +179,7 @@ export function useFileManagerApi() {
           const chunk = file.slice(start, end)
 
           try {
-            await $fetch<{ ok: true, completed: boolean }>('/api/fs/upload', {
+            await apiFetch<{ ok: true, completed: boolean }>('/api/fs/upload', {
               method: 'POST',
               query: {
                 rootId,
@@ -232,7 +233,7 @@ export function useFileManagerApi() {
   }
 
   async function importLocal(rootId: string, path: string, sourcePaths: string[]) {
-    return await $fetch<{ ok: true, imported: number }>('/api/fs/import-local', {
+    return await apiFetch<{ ok: true, imported: number }>('/api/fs/import-local', {
       method: 'POST',
       body: {
         rootId,
@@ -243,7 +244,7 @@ export function useFileManagerApi() {
   }
 
   async function remove(rootId: string, path: string) {
-    return await $fetch('/api/fs/delete', {
+    return await apiFetch('/api/fs/delete', {
       method: 'POST',
       body: {
         rootId,
@@ -259,7 +260,7 @@ export function useFileManagerApi() {
     toDirPath: string,
     overwriteExisting = true
   ) {
-    return await $fetch<{ ok: true, result: { copiedFiles: number, copiedDirectories: number, skipped: number } }>('/api/fs/copy', {
+    return await apiFetch<{ ok: true, result: { copiedFiles: number, copiedDirectories: number, skipped: number } }>('/api/fs/copy', {
       method: 'POST',
       body: {
         fromRootId,
@@ -278,7 +279,7 @@ export function useFileManagerApi() {
     toDirPath: string,
     overwriteExisting = true
   ) {
-    return await $fetch<{ jobId: string }>('/api/fs/copy-start', {
+    return await apiFetch<{ jobId: string }>('/api/fs/copy-start', {
       method: 'POST',
       body: {
         fromRootId,
@@ -291,7 +292,7 @@ export function useFileManagerApi() {
   }
 
   async function getCopyStatus(jobId: string) {
-    return await $fetch<{
+    return await apiFetch<{
       jobId: string
       status: 'running' | 'completed' | 'failed' | 'canceled'
       result: { copiedFiles: number, copiedDirectories: number, skipped: number } | null
@@ -313,7 +314,7 @@ export function useFileManagerApi() {
   }
 
   async function cancelCopy(jobId: string) {
-    return await $fetch<{ jobId: string, status: string }>('/api/fs/copy-cancel', {
+    return await apiFetch<{ jobId: string, status: string }>('/api/fs/copy-cancel', {
       method: 'POST',
       body: { jobId }
     })
@@ -341,7 +342,7 @@ export function useFileManagerApi() {
     toDirPath: string,
     newName?: string
   ) {
-    return await $fetch('/api/fs/move', {
+    return await apiFetch('/api/fs/move', {
       method: 'POST',
       body: {
         fromRootId,

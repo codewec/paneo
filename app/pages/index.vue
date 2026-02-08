@@ -1,5 +1,3 @@
 <template>
-  <AuthPasswordGate>
-    <FileManagerWorkspace />
-  </AuthPasswordGate>
+  <FileManagerWorkspace />
 </template>
