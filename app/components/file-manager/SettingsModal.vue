@@ -41,9 +41,9 @@ const modelLanguage = computed({
       <div class="space-y-4">
         <div class="flex flex-col items-center gap-2 pb-1 text-center">
           <img
-            src="/web-app-manifest-192x192.png"
+            src="/favicon.svg"
             alt="Paneo"
-            class="size-16 rounded-lg"
+            class="w-16 rounded-lg"
           >
           <p class="text-base font-semibold">
             Paneo

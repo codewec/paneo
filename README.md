@@ -5,18 +5,19 @@
       Built with Nuxt 4 + Nuxt UI, it is designed to run in Docker with filesystem access restricted to configured roots.
     </i>
     <br/><br/>
-    <img width="130" alt="Paneo" src="https://raw.githubusercontent.com/codewec/paneo/main/static/favicon.svg"/>
+    <img width="130" alt="Paneo" src="https://raw.githubusercontent.com/codewec/paneo/main/public/favicon.svg"/>
     <br/> <br/>
     <img src="https://img.shields.io/github/v/release/codewec/paneo?logo=hackthebox&color=609966&logoColor=fff" alt="Current Version"/>
     <img src="https://img.shields.io/github/last-commit/codewec/paneo?logo=github&color=609966&logoColor=fff" alt="Last commit"/>
     <a href="https://github.com/codewec/paneo/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-609966?logo=opensourceinitiative&logoColor=fff" alt="License MIT"/></a>
     <br/><br/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo1.png?raw=true" alt="Paneo" width="100%"/><br/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo2.png?raw=true" alt="Paneo" width="20%"/><br/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo3.png?raw=true" alt="Paneo" width="20%"/><br/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo4.png?raw=true" alt="Paneo" width="20%"/><br/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo5.png?raw=true" alt="Paneo" width="20%"/><br/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo6.png?raw=true" alt="Paneo" width="20%"/><br/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo1.png?raw=true" alt="Paneo" width="100%"/>
+    <br/><br/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo2.png?raw=true" alt="Paneo" width="20%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo3.png?raw=true" alt="Paneo" width="20%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo4.png?raw=true" alt="Paneo" width="20%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo5.png?raw=true" alt="Paneo" width="20%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo6.png?raw=true" alt="Paneo" width="20%"/>
 </p>
 
 
