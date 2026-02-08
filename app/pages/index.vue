@@ -93,6 +93,7 @@ const {
   viewerTitle,
   viewerUrl,
   viewerMode,
+  viewerTextContent,
   editorOpen,
   editorTitle,
   editorContent,
@@ -937,11 +938,14 @@ await initialize()
             class="w-full"
           />
         </template>
-        <template v-else>
+        <template v-else-if="viewerMode === 'pdf'">
           <iframe
             :src="viewerUrl"
             class="h-[75vh] w-full rounded"
           />
+        </template>
+        <template v-else>
+          <pre class="h-[75vh] w-full overflow-auto rounded border border-default p-3 font-mono text-xs whitespace-pre-wrap">{{ viewerTextContent }}</pre>
         </template>
       </template>
     </UModal>

@@ -103,6 +103,7 @@
   },
   "toasts": {
     "openFileFailed": "Datei konnte nicht geöffnet werden",
+    "previewNotSupported": "Dieser Dateityp kann nicht angezeigt werden",
     "saveFailed": "Fehler beim Speichern",
     "saved": "Datei gespeichert",
     "openTargetSourceFirst": "Öffnen Sie zuerst die Zielquelle",

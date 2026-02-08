@@ -66,17 +66,7 @@ interface CopyRequestItem {
   fromName: string
 }
 
-function isImagePath(filePath: string) {
-  return /\.(jpg|jpeg|png|gif|webp|bmp|svg|ico|tiff?|avif)$/i.test(filePath)
-}
-
-function isVideoPath(filePath: string) {
-  return /\.(mp4|webm|ogg|mov|m4v)$/i.test(filePath)
-}
-
-function isAudioPath(filePath: string) {
-  return /\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(filePath)
-}
+type ViewerMode = 'image' | 'video' | 'audio' | 'pdf' | 'text'
 
 function getLastPathSegment(path: string) {
   const segments = path.split('/').filter(Boolean)
@@ -125,7 +115,8 @@ export function useFileManagerActions(panels: PanelsContext) {
   const viewerOpen = ref(false)
   const viewerTitle = ref('')
   const viewerUrl = ref('')
-  const viewerMode = ref<'image' | 'video' | 'audio' | 'document'>('document')
+  const viewerMode = ref<ViewerMode>('text')
+  const viewerTextContent = ref('')
 
   const editorOpen = ref(false)
   const editorTitle = ref('')
@@ -766,19 +757,47 @@ export function useFileManagerActions(panels: PanelsContext) {
       return
     }
 
-    viewerTitle.value = entry.name
-    if (isImagePath(entry.path)) {
-      viewerMode.value = 'image'
-    } else if (isVideoPath(entry.path)) {
-      viewerMode.value = 'video'
-    } else if (isAudioPath(entry.path)) {
-      viewerMode.value = 'audio'
-    } else {
-      viewerMode.value = 'document'
-    }
+    try {
+      const meta = await api.fetchMeta(panel.rootId, entry.path)
+      const mimeType = String(meta.mimeType || '').toLowerCase()
 
-    viewerUrl.value = `/api/fs/raw?rootId=${encodeURIComponent(panel.rootId)}&path=${encodeURIComponent(entry.path)}&v=${Date.now()}`
-    viewerOpen.value = true
+      viewerTitle.value = entry.name
+      viewerTextContent.value = ''
+      viewerUrl.value = ''
+
+      if (mimeType.startsWith('image/')) {
+        viewerMode.value = 'image'
+      } else if (mimeType.startsWith('video/')) {
+        viewerMode.value = 'video'
+      } else if (mimeType.startsWith('audio/')) {
+        viewerMode.value = 'audio'
+      } else if (mimeType === 'application/pdf') {
+        viewerMode.value = 'pdf'
+      } else if (meta.isText) {
+        viewerMode.value = 'text'
+        const response = await api.readText(panel.rootId, entry.path)
+        viewerTextContent.value = response.content
+      } else {
+        toast.add({
+          title: t('toasts.previewNotSupported'),
+          description: mimeType || entry.name,
+          color: 'warning'
+        })
+        return
+      }
+
+      if (viewerMode.value !== 'text') {
+        viewerUrl.value = `/api/fs/raw?rootId=${encodeURIComponent(panel.rootId)}&path=${encodeURIComponent(entry.path)}&v=${Date.now()}`
+      }
+
+      viewerOpen.value = true
+    } catch (error) {
+      toast.add({
+        title: t('toasts.openFileFailed'),
+        description: getErrorMessage(error),
+        color: 'error'
+      })
+    }
   }
 
   async function openEditor() {
@@ -1308,6 +1327,7 @@ export function useFileManagerActions(panels: PanelsContext) {
     viewerTitle,
     viewerUrl,
     viewerMode,
+    viewerTextContent,
     editorOpen,
     editorTitle,
     editorContent,

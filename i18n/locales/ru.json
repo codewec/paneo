@@ -107,6 +107,7 @@
   },
   "toasts": {
     "openFileFailed": "Не удалось открыть файл",
+    "previewNotSupported": "Этот тип файла нельзя просмотреть",
     "saveFailed": "Ошибка сохранения",
     "saved": "Файл сохранен",
     "openTargetSourceFirst": "Сначала откройте целевой источник",

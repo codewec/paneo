@@ -103,6 +103,7 @@
   },
   "toasts": {
     "openFileFailed": "Failed to open file",
+    "previewNotSupported": "This file type cannot be previewed",
     "saveFailed": "Save error",
     "saved": "File saved",
     "openTargetSourceFirst": "Open destination source first",
