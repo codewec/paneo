@@ -11,13 +11,12 @@
     <img src="https://img.shields.io/github/last-commit/codewec/paneo?logo=github&color=609966&logoColor=fff" alt="Last commit"/>
     <a href="https://github.com/codewec/paneo/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-609966?logo=opensourceinitiative&logoColor=fff" alt="License MIT"/></a>
     <br/><br/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo1.png?raw=true" alt="Paneo" width="100%"/>
-    <br/><br/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo2.png?raw=true" alt="Paneo" width="50%"/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo3.png?raw=true" alt="Paneo" width="50%"/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo4.png?raw=true" alt="Paneo" width="50%"/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo5.png?raw=true" alt="Paneo" width="50%"/>
-    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo6.png?raw=true" alt="Paneo" width="50%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo1.png?raw=true" alt="Paneo" width="40%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo2.png?raw=true" alt="Paneo" width="40%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo3.png?raw=true" alt="Paneo" width="40%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo4.png?raw=true" alt="Paneo" width="40%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo5.png?raw=true" alt="Paneo" width="40%"/>
+    <img src="https://github.com/codewec/paneo/blob/main/.github/screenshots/paneo6.png?raw=true" alt="Paneo" width="40%"/>
 </p>
 
 
