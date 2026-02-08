@@ -1,13 +1,18 @@
 {
   "name": "paneo",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "nuxt build",
+    "changelog": "changelogen --hideAuthorEmail --output CHANGELOG.md",
+    "changelog:dry": "changelogen --dry --hideAuthorEmail --output CHANGELOG.md",
     "dev": "nuxt dev",
+    "dry": "pnpm changelog:dry",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
+    "release": "changelogen --release --hideAuthorEmail --output CHANGELOG.md",
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
@@ -20,6 +25,7 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.13.0",
     "@types/node": "^25.2.1",
+    "changelogen": "^0.6.2",
     "eslint": "^9.39.2",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.2.4"

@@ -263,6 +263,43 @@ pnpm lint
 pnpm build
 ```
 
+### Releases (changelogen)
+
+Generate/update `CHANGELOG.md`:
+
+```bash
+pnpm changelog
+```
+
+Preview changelog changes without writing:
+
+```bash
+pnpm changelog:dry
+```
+
+`dry` alias (same as `changelog:dry`):
+
+```bash
+pnpm dry
+```
+
+Create a release with version bump, changelog update, commit and tag:
+
+```bash
+pnpm release
+```
+
+Current scripts use `--hideAuthorEmail`, so author emails are not included in release notes.
+If you also want to hide the contributors block completely, use `--noAuthors`.
+
+Recommended release flow:
+
+1. Ensure branch is up to date and checks pass.
+2. Preview notes: `pnpm dry`.
+3. Create release commit + tag: `pnpm release`.
+4. Push commit and tag: `git push --follow-tags`.
+5. GitHub Actions (`docker-publish`) publishes release images from the pushed tag.
+
 ### Project Structure
 
 - `app/pages/index.vue` - file manager workspace page
