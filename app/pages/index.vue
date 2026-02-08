@@ -36,6 +36,8 @@ const panelDragDepth = reactive<Record<'left' | 'right', number>>({
   right: 0
 })
 
+const INTERNAL_PANEL_DND_TYPE = 'application/x-paneo-panel-dnd'
+
 type DndEntry = FileSystemEntry
 type DndFileEntry = FileSystemFileEntry
 type DndDirectoryReader = FileSystemDirectoryReader
@@ -259,6 +261,85 @@ function setLanguage(value: LocaleCode) {
   void setLocale(value)
 }
 
+function getOppositePanel(panel: typeof leftPanel) {
+  return panel.id === 'left' ? rightPanel : leftPanel
+}
+
+function getPanelById(panelId: 'left' | 'right') {
+  return panelId === 'left' ? leftPanel : rightPanel
+}
+
+function hasDataTransferType(dataTransfer: DataTransfer, type: string) {
+  const types = dataTransfer.types as unknown as { contains?: (value: string) => boolean }
+  if (typeof types?.contains === 'function') {
+    return types.contains(type)
+  }
+
+  return Array.from(dataTransfer.types || []).includes(type)
+}
+
+function getInternalDragSourceId(event: DragEvent): 'left' | 'right' | null {
+  const dataTransfer = event.dataTransfer
+  if (!dataTransfer || !hasDataTransferType(dataTransfer, INTERNAL_PANEL_DND_TYPE)) {
+    return null
+  }
+
+  const raw = dataTransfer.getData(INTERNAL_PANEL_DND_TYPE)
+  return raw === 'left' || raw === 'right' ? raw : null
+}
+
+function canCopyBetweenPanels(sourcePanel: typeof leftPanel, targetPanel: typeof leftPanel) {
+  if (!sourcePanel.rootId || !targetPanel.rootId) {
+    return false
+  }
+
+  if (sourcePanel.rootId === targetPanel.rootId && sourcePanel.path === targetPanel.path) {
+    return false
+  }
+
+  return panels.getActionEntries(sourcePanel).length > 0
+}
+
+function canStartPanelEntryDrag(panel: typeof leftPanel, entry: { key: string, kind: string }) {
+  if (entry.kind !== 'file' && entry.kind !== 'dir') {
+    return false
+  }
+
+  const actionEntries = panels.getActionEntries(panel)
+  if (!actionEntries.length) {
+    return false
+  }
+
+  if (!actionEntries.some(item => item.key === entry.key)) {
+    return false
+  }
+
+  return canCopyBetweenPanels(panel, getOppositePanel(panel))
+}
+
+function onEntryDragStart(panel: typeof leftPanel, entry: { key: string, kind: string }, event: DragEvent) {
+  if (!canStartPanelEntryDrag(panel, entry)) {
+    event.preventDefault()
+    return
+  }
+
+  const dataTransfer = event.dataTransfer
+  if (!dataTransfer) {
+    event.preventDefault()
+    return
+  }
+  selectPanel(panel)
+  dataTransfer.effectAllowed = 'copy'
+  dataTransfer.setData(INTERNAL_PANEL_DND_TYPE, panel.id)
+}
+
+function onEntryDragEnd() {
+  panelDragDepth.left = 0
+  panelDragDepth.right = 0
+  panelDragOver.left = false
+  panelDragOver.right = false
+}
+
 function canHandleDrop(event: DragEvent) {
   return !!event.dataTransfer
 }
@@ -269,7 +350,6 @@ function onPanelDragEnter(panel: typeof leftPanel, event: DragEvent) {
     return
   }
 
-  selectPanel(panel)
   panelDragDepth[panel.id] += 1
   panelDragOver[panel.id] = true
 }
@@ -280,10 +360,16 @@ function onPanelDragOver(panel: typeof leftPanel, event: DragEvent) {
     return
   }
 
-  selectPanel(panel)
+  const sourceId = getInternalDragSourceId(event)
   if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = panel.rootId ? 'copy' : 'none'
+    if (sourceId) {
+      const sourcePanel = getPanelById(sourceId)
+      event.dataTransfer.dropEffect = canCopyBetweenPanels(sourcePanel, panel) ? 'copy' : 'none'
+    } else {
+      event.dataTransfer.dropEffect = panel.rootId ? 'copy' : 'none'
+    }
   }
+
   panelDragOver[panel.id] = true
 }
 
@@ -419,6 +505,17 @@ async function onPanelDrop(panel: typeof leftPanel, event: DragEvent) {
   event.preventDefault()
   panelDragDepth[panel.id] = 0
   panelDragOver[panel.id] = false
+
+  const internalSourceId = getInternalDragSourceId(event)
+  if (internalSourceId) {
+    const sourcePanel = getPanelById(internalSourceId)
+    if (canCopyBetweenPanels(sourcePanel, panel)) {
+      selectPanel(sourcePanel)
+      openCopy()
+    }
+    return
+  }
+
   selectPanel(panel)
 
   if (!panel.rootId) {
@@ -797,8 +894,11 @@ await initialize()
                     : isMarked(panel, entry)
                       ? 'soft'
                       : 'ghost'"
+                  :draggable="canStartPanelEntryDrag(panel, entry)"
                   @click.stop="onEntryClick(panel, entry, $event)"
                   @dblclick.stop="onEntryDoubleClick(panel, entry)"
+                  @dragstart.stop="onEntryDragStart(panel, entry, $event)"
+                  @dragend.stop="onEntryDragEnd"
                 >
                   <template #leading>
                     <UIcon
