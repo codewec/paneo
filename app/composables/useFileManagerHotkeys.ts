@@ -13,6 +13,7 @@ interface FileManagerHotkeysOptions {
   onF6: () => Promise<void>
   onF7: () => void
   onF8: () => Promise<void>
+  onF10: () => void
   onF9: () => void
   onInsert: () => void
   onT: () => void
@@ -86,6 +87,12 @@ export function useFileManagerHotkeys(options: FileManagerHotkeysOptions) {
     if (event.key === 'F9') {
       event.preventDefault()
       options.onF9()
+      return
+    }
+
+    if (event.key === 'F10') {
+      event.preventDefault()
+      options.onF10()
       return
     }
 

@@ -19,6 +19,7 @@
   "hotkeys": {
     "f1Settings": "F1 Настройки",
     "f9Upload": "F9 Загрузка",
+    "f10Download": "F10 Скачать",
     "f3View": "F3 Просмотр",
     "f4Edit": "F4 Редактировать",
     "f5Copy": "F5 Копировать",
@@ -37,7 +38,8 @@
     "copyProgress": "Прогресс копирования",
     "rename": "Переименование",
     "upload": "Загрузка",
-    "uploadProgress": "Прогресс загрузки"
+    "uploadProgress": "Прогресс загрузки",
+    "download": "Скачивание"
   },
   "fields": {
     "name": "Имя",
@@ -45,7 +47,8 @@
     "folderName": "Имя папки",
     "newName": "Новое имя",
     "chooseFiles": "Выберите файлы",
-    "chooseFolders": "Выберите папки"
+    "chooseFolders": "Выберите папки",
+    "archiveName": "Имя архива"
   },
   "buttons": {
     "save": "Сохранить",
@@ -59,7 +62,8 @@
     "open": "Открыть",
     "rename": "Переименовать",
     "refresh": "Обновить",
-    "upload": "Загрузить"
+    "upload": "Загрузить",
+    "download": "Скачать"
   },
   "upload": {
     "selectedCount_one": "Выбрано: {count} элемент",
@@ -131,10 +135,14 @@
     "folderCreated": "Папка создана",
     "fileCreated": "Файл создан",
     "uploadFailed": "Ошибка загрузки",
-    "uploaded": "Загрузка завершена"
+    "uploaded": "Загрузка завершена",
+    "downloadFailed": "Ошибка скачивания"
   },
   "confirm": {
     "delete": "Удалить {name}?",
-    "deleteMultiple": "Удалить выбранные элементы ({count})?"
+    "deleteMultiple": "Удалить выбранные элементы ({count})?",
+    "download": "Скачать {name}?",
+    "downloadMultiple": "Скачать выбранные элементы ({count})?",
+    "downloadArchiveHint": "Несколько элементов будут скачаны в виде архива .tar.gz."
   }
 }

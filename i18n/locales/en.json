@@ -17,6 +17,7 @@
   "hotkeys": {
     "f1Settings": "F1 Settings",
     "f9Upload": "F9 Upload",
+    "f10Download": "F10 Download",
     "f3View": "F3 View",
     "f4Edit": "F4 Edit",
     "f5Copy": "F5 Copy",
@@ -35,7 +36,8 @@
     "copyProgress": "Copy Progress",
     "rename": "Rename",
     "upload": "Upload",
-    "uploadProgress": "Upload Progress"
+    "uploadProgress": "Upload Progress",
+    "download": "Download"
   },
   "fields": {
     "name": "Name",
@@ -43,7 +45,8 @@
     "folderName": "Folder name",
     "newName": "New name",
     "chooseFiles": "Choose files",
-    "chooseFolders": "Choose folders"
+    "chooseFolders": "Choose folders",
+    "archiveName": "Archive name"
   },
   "buttons": {
     "save": "Save",
@@ -57,7 +60,8 @@
     "open": "Open",
     "rename": "Rename",
     "refresh": "Refresh",
-    "upload": "Upload"
+    "upload": "Upload",
+    "download": "Download"
   },
   "upload": {
     "selectedCount_one": "Selected: {count} item",
@@ -127,10 +131,14 @@
     "folderCreated": "Folder created",
     "fileCreated": "File created",
     "uploadFailed": "Upload error",
-    "uploaded": "Upload completed"
+    "uploaded": "Upload completed",
+    "downloadFailed": "Download failed"
   },
   "confirm": {
     "delete": "Delete {name}?",
-    "deleteMultiple": "Delete selected items ({count})?"
+    "deleteMultiple": "Delete selected items ({count})?",
+    "download": "Download {name}?",
+    "downloadMultiple": "Download selected items ({count})?",
+    "downloadArchiveHint": "Multiple items will be downloaded as a .tar.gz archive."
   }
 }

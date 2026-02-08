@@ -4,6 +4,7 @@ import { basename, dirname, isAbsolute, normalize, relative, resolve, sep } from
 import { pipeline } from 'node:stream/promises'
 import { createError } from 'h3'
 import { useRuntimeConfig } from '#imports'
+import { spawn } from 'node:child_process'
 
 export interface FileRoot {
   id: string
@@ -374,6 +375,80 @@ async function pathExists(absPath: string) {
     }
 
     throw error
+  }
+}
+
+export async function createDownloadArchive(rootId: string, relativePaths: string[], archiveBaseName?: string) {
+  const normalizedPaths = Array.from(new Set(
+    relativePaths
+      .map(path => normalizeRelativePath(path))
+      .filter(Boolean)
+  ))
+
+  if (!normalizedPaths.length) {
+    throw createError({ statusCode: 400, statusMessage: 'At least one path is required' })
+  }
+
+  const resolvedTargets = await Promise.all(normalizedPaths.map(async (relativePath) => {
+    const target = resolveWithinRoot(rootId, relativePath)
+    const targetStats = await stat(target.absPath)
+
+    return {
+      target,
+      targetStats
+    }
+  }))
+
+  if (resolvedTargets.length === 1 && resolvedTargets[0]?.targetStats.isFile()) {
+    const single = resolvedTargets[0]
+    return {
+      filename: basename(single.target.relativePath) || 'download',
+      stream: createReadStream(single.target.absPath),
+      contentType: 'application/octet-stream'
+    }
+  }
+
+  const tarArgs = ['-czf', '-']
+
+  for (const { target } of resolvedTargets) {
+    const targetDir = dirname(target.absPath)
+    const targetName = basename(target.absPath)
+    tarArgs.push('-C', targetDir, targetName)
+  }
+
+  const normalizedArchiveBaseName = String(archiveBaseName || '')
+    .replaceAll('\\', '')
+    .replaceAll('/', '')
+    .trim()
+
+  const fallbackName = resolvedTargets.length === 1
+    ? (basename(resolvedTargets[0]?.target.relativePath || 'download') || 'download')
+    : ('paneo-download-' + Date.now())
+
+  const filename = (normalizedArchiveBaseName || fallbackName) + '.tar.gz'
+
+  const tarProcess = spawn('tar', tarArgs, { stdio: ['ignore', 'pipe', 'pipe'] })
+  let stderr = ''
+
+  tarProcess.stderr.on('data', (chunk: Buffer | string) => {
+    stderr += chunk.toString()
+  })
+
+  tarProcess.on('error', (error) => {
+    tarProcess.stdout.destroy(error)
+  })
+
+  tarProcess.on('close', (code) => {
+    if (code && code !== 0) {
+      const message = stderr.trim() || 'Archive generation failed'
+      tarProcess.stdout.destroy(new Error(message))
+    }
+  })
+
+  return {
+    filename,
+    stream: tarProcess.stdout,
+    contentType: 'application/gzip'
   }
 }
 

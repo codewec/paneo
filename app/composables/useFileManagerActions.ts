@@ -211,6 +211,10 @@ export function useFileManagerActions(panels: PanelsContext) {
   const deleteTargets = ref<Array<{ rootId: string, path: string, name: string }>>([])
   const deleteLoading = ref(false)
 
+  const downloadConfirmOpen = ref(false)
+  const downloadTargets = ref<Array<{ rootId: string, path: string, name: string }>>([])
+  const downloadArchiveName = ref('')
+
   const fileMetaCache = ref(new Map<string, { mimeType: string, isText: boolean }>())
   const selectedFileMeta = ref<{ mimeType: string, isText: boolean } | null>(null)
   const selectedFileMetaLoading = ref(false)
@@ -220,6 +224,8 @@ export function useFileManagerActions(panels: PanelsContext) {
   const actionsDisabledByRootList = computed(() => !panels.activePanel.value.rootId)
   const isBulkDelete = computed(() => deleteTargets.value.length > 1)
   const deletePrimaryName = computed(() => deleteTargets.value[0]?.name || '')
+  const isBulkDownload = computed(() => downloadTargets.value.length > 1)
+  const downloadPrimaryName = computed(() => downloadTargets.value[0]?.name || '')
 
   const canView = computed(() => {
     if (actionsDisabledByRootList.value) {
@@ -295,6 +301,14 @@ export function useFileManagerActions(panels: PanelsContext) {
   })
 
   const canDelete = computed(() => {
+    if (actionsDisabledByRootList.value) {
+      return false
+    }
+
+    return activeActionEntries.value.length > 0
+  })
+
+  const canDownload = computed(() => {
     if (actionsDisabledByRootList.value) {
       return false
     }
@@ -1218,6 +1232,68 @@ export function useFileManagerActions(panels: PanelsContext) {
     copyConfirmOpen.value = false
   }
 
+  function openDownload() {
+    if (!canDownload.value) {
+      return
+    }
+
+    const panel = panels.activePanel.value
+    if (!panel.rootId) {
+      return
+    }
+
+    const entries = panels.getActionEntries(panel)
+    if (!entries.length) {
+      return
+    }
+
+    downloadTargets.value = entries.map(entry => ({
+      rootId: panel.rootId!,
+      path: entry.path,
+      name: entry.name
+    }))
+    const archiveBaseName = downloadTargets.value.length === 1
+      ? getLastPathSegment(getParentPath(downloadTargets.value[0]?.path || '')) || 'download'
+      : 'paneo-download-' + new Date().toISOString().slice(0, 10)
+    downloadArchiveName.value = archiveBaseName
+    downloadConfirmOpen.value = true
+  }
+
+  function confirmDownload() {
+    if (!downloadTargets.value.length) {
+      return
+    }
+
+    const rootId = downloadTargets.value[0]?.rootId
+    if (!rootId) {
+      return
+    }
+
+    try {
+      const paths = downloadTargets.value.map(item => item.path)
+      const archiveName = isBulkDownload.value
+        ? downloadArchiveName.value.trim().replace(/\.tar\.gz$/i, '').replace(/\.gz$/i, '')
+        : undefined
+      const url = api.getDownloadUrl(rootId, paths, archiveName)
+      const link = document.createElement('a')
+      link.href = url
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      downloadConfirmOpen.value = false
+      downloadTargets.value = []
+      downloadArchiveName.value = ''
+    } catch (error) {
+      toast.add({
+        title: t('toasts.downloadFailed'),
+        description: getErrorMessage(error),
+        color: 'error'
+      })
+    }
+  }
+
   async function removeSelected() {
     if (!canDelete.value) {
       return
@@ -1450,12 +1526,18 @@ export function useFileManagerActions(panels: PanelsContext) {
     isBulkDelete,
     deletePrimaryName,
     deleteLoading,
+    downloadConfirmOpen,
+    downloadTargets,
+    downloadArchiveName,
+    isBulkDownload,
+    downloadPrimaryName,
     canView,
     canEdit,
     canCopyOrMove,
     canCopy,
     canRename,
     canDelete,
+    canDownload,
     canCreateDir,
     canUpload,
     openViewer,
@@ -1473,6 +1555,8 @@ export function useFileManagerActions(panels: PanelsContext) {
     openRename,
     confirmRename,
     closeRename,
+    openDownload,
+    confirmDownload,
     removeSelected,
     confirmRemoveSelected,
     openCreateDir,

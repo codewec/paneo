@@ -294,6 +294,21 @@ export function useFileManagerApi() {
     })
   }
 
+  function getDownloadUrl(rootId: string, paths: string[], archiveName?: string) {
+    const params = new URLSearchParams()
+    params.set('rootId', rootId)
+    for (const path of paths) {
+      params.append('path', path)
+    }
+
+    const normalizedArchiveName = String(archiveName || '').trim()
+    if (normalizedArchiveName) {
+      params.set('archiveName', normalizedArchiveName)
+    }
+
+    return '/api/fs/download?' + params.toString()
+  }
+
   async function move(
     fromRootId: string,
     fromPath: string,
@@ -328,6 +343,7 @@ export function useFileManagerApi() {
     startCopy,
     getCopyStatus,
     cancelCopy,
+    getDownloadUrl,
     move
   }
 }

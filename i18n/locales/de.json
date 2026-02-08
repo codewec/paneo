@@ -17,6 +17,7 @@
   "hotkeys": {
     "f1Settings": "F1 Einstellungen",
     "f9Upload": "F9 Hochladen",
+    "f10Download": "F10 Herunterladen",
     "f3View": "F3 Anzeigen",
     "f4Edit": "F4 Bearbeiten",
     "f5Copy": "F5 Kopieren",
@@ -35,7 +36,8 @@
     "copyProgress": "Kopiervorgang",
     "rename": "Umbenennen",
     "upload": "Hochladen",
-    "uploadProgress": "Upload-Fortschritt"
+    "uploadProgress": "Upload-Fortschritt",
+    "download": "Download"
   },
   "fields": {
     "name": "Name",
@@ -43,7 +45,8 @@
     "folderName": "Ordnername",
     "newName": "Neuer Name",
     "chooseFiles": "Dateien auswählen",
-    "chooseFolders": "Ordner auswählen"
+    "chooseFolders": "Ordner auswählen",
+    "archiveName": "Archivname"
   },
   "buttons": {
     "save": "Speichern",
@@ -57,7 +60,8 @@
     "open": "Öffnen",
     "rename": "Umbenennen",
     "refresh": "Aktualisieren",
-    "upload": "Hochladen"
+    "upload": "Hochladen",
+    "download": "Herunterladen"
   },
   "upload": {
     "selectedCount_one": "Ausgewählt: {count} Element",
@@ -127,10 +131,14 @@
     "folderCreated": "Ordner erstellt",
     "fileCreated": "Datei erstellt",
     "uploadFailed": "Upload-Fehler",
-    "uploaded": "Upload abgeschlossen"
+    "uploaded": "Upload abgeschlossen",
+    "downloadFailed": "Download fehlgeschlagen"
   },
   "confirm": {
     "delete": "{name} löschen?",
-    "deleteMultiple": "Ausgewählte Elemente löschen ({count})?"
+    "deleteMultiple": "Ausgewählte Elemente löschen ({count})?",
+    "download": "{name} herunterladen?",
+    "downloadMultiple": "Ausgewählte Elemente herunterladen ({count})?",
+    "downloadArchiveHint": "Mehrere Elemente werden als .tar.gz-Archiv heruntergeladen."
   }
 }

@@ -124,10 +124,16 @@ const {
   isBulkDelete,
   deletePrimaryName,
   deleteLoading,
+  downloadConfirmOpen,
+  downloadTargets,
+  downloadArchiveName,
+  isBulkDownload,
+  downloadPrimaryName,
   canEdit,
   canCopy,
   canRename,
   canDelete,
+  canDownload,
   canCreateDir,
   canUpload,
   openViewer,
@@ -143,6 +149,8 @@ const {
   confirmRename,
   closeRename,
   closeCopyConfirm,
+  openDownload,
+  confirmDownload,
   removeSelected,
   confirmRemoveSelected,
   openCreateDir,
@@ -169,9 +177,14 @@ const deleteTargetPaths = computed(() => deleteTargets.value.map((target) => {
   const rootName = panels.getRootName(target.rootId)
   return rootName + ':/' + target.path
 }))
+const downloadTargetPaths = computed(() => downloadTargets.value.map((target) => {
+  const rootName = panels.getRootName(target.rootId)
+  return rootName + ':/' + target.path
+}))
 
 const canUseF3 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value)
 const canUseF9 = computed(() => isClientMounted.value && !!activePanel.value.rootId && canUpload.value)
+const canUseF10 = computed(() => isClientMounted.value && canDownload.value)
 const canUseF4 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value && canEdit.value)
 const canUseF5 = computed(() => isClientMounted.value && canUseEntryActions.value && canCopy.value)
 const canUseF6 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseEntryActions.value && canRename.value)
@@ -579,6 +592,7 @@ function isModalOpen() {
     || copyConfirmOpen.value
     || copyProgressOpen.value
     || deleteConfirmOpen.value
+    || downloadConfirmOpen.value
     || settingsOpen.value
 }
 
@@ -668,6 +682,20 @@ async function handleCopyConfirmEnter(event: KeyboardEvent) {
   await confirmCopy()
 }
 
+function handleDownloadConfirmEnter(event: KeyboardEvent) {
+  if (!downloadConfirmOpen.value) {
+    return
+  }
+
+  if (event.key !== 'Enter') {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+  confirmDownload()
+}
+
 useFileManagerHotkeys({
   isEnabled: () => !isModalOpen(),
   onTab: switchActivePanel,
@@ -688,6 +716,11 @@ useFileManagerHotkeys({
   },
   onF8: () => canUseF8.value ? removeSelected() : Promise.resolve(),
   onF9: openUploadModal,
+  onF10: () => {
+    if (canUseF10.value) {
+      openDownload()
+    }
+  },
   onInsert: () => toggleMarkAndMoveNext(activePanel.value),
   onT: () => toggleMarkAndMoveNext(activePanel.value)
 })
@@ -720,6 +753,15 @@ watch(deleteLoading, (isLoading) => {
   }
 })
 
+watch(downloadConfirmOpen, (isOpen) => {
+  if (isOpen) {
+    window.addEventListener('keydown', handleDownloadConfirmEnter, true)
+    return
+  }
+
+  window.removeEventListener('keydown', handleDownloadConfirmEnter, true)
+})
+
 watch(copyConfirmOpen, (isOpen) => {
   if (isOpen) {
     window.addEventListener('keydown', handleCopyConfirmEnter, true)
@@ -731,6 +773,7 @@ watch(copyConfirmOpen, (isOpen) => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleDeleteConfirmEnter, true)
+  window.removeEventListener('keydown', handleDownloadConfirmEnter, true)
   window.removeEventListener('keydown', handleCopyConfirmEnter, true)
 })
 
@@ -935,7 +978,7 @@ await initialize()
 
       <UCard :ui="{ body: 'p-2' }">
         <ClientOnly>
-          <div class="grid grid-cols-2 gap-2 md:grid-cols-8">
+          <div class="grid grid-cols-2 gap-2 md:grid-cols-9">
             <UButton
               :label="t('hotkeys.f1Settings')"
               icon="i-lucide-settings"
@@ -1006,6 +1049,15 @@ await initialize()
               class="justify-center"
               :disabled="!canUseF9"
               @click="openUploadModal"
+            />
+            <UButton
+              :label="t('hotkeys.f10Download')"
+              icon="i-lucide-download"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF10"
+              @click="openDownload"
             />
           </div>
           <template #fallback>
@@ -1372,6 +1424,58 @@ await initialize()
             :label="t('buttons.create')"
             icon="i-lucide-folder-plus"
             @click="createDir"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="downloadConfirmOpen"
+      :title="t('modal.download')"
+    >
+      <template #body>
+        <div class="space-y-3">
+          <p class="text-sm text-muted">
+            {{ isBulkDownload
+              ? t('confirm.downloadMultiple', { count: downloadTargets.length })
+              : t('confirm.download', { name: downloadPrimaryName }) }}
+          </p>
+          <p
+            v-if="isBulkDownload"
+            class="text-xs text-muted"
+          >
+            {{ t('confirm.downloadArchiveHint') }}
+          </p>
+          <UInput
+            v-if="isBulkDownload"
+            v-model="downloadArchiveName"
+            class="w-full"
+            :placeholder="t('fields.archiveName')"
+          />
+          <div class="max-h-48 overflow-auto rounded border border-default p-2">
+            <p
+              v-for="path in downloadTargetPaths"
+              :key="path"
+              class="font-mono text-xs break-all"
+            >
+              {{ path }}
+            </p>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full gap-2">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :label="t('buttons.cancel')"
+            @click="downloadConfirmOpen = false"
+          />
+          <UButton
+            color="neutral"
+            :label="t('buttons.download')"
+            icon="i-lucide-download"
+            @click="confirmDownload"
           />
         </div>
       </template>
