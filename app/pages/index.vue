@@ -165,6 +165,10 @@ const isMultiActionSelection = computed(() => actionEntriesCount.value > 1)
 const selectedKind = computed(() => activePanelSelectedEntry.value?.kind || null)
 const canUseFileActions = computed(() => selectedKind.value === 'file')
 const canUseEntryActions = computed(() => selectedKind.value === 'file' || selectedKind.value === 'dir')
+const deleteTargetPaths = computed(() => deleteTargets.value.map((target) => {
+  const rootName = panels.getRootName(target.rootId)
+  return rootName + ':/' + target.path
+}))
 
 const canUseF3 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value)
 const canUseF2 = computed(() => isClientMounted.value && !!activePanel.value.rootId && canUpload.value)
@@ -1378,11 +1382,22 @@ await initialize()
       :title="t('modal.delete')"
     >
       <template #body>
-        <p class="text-sm text-muted">
-          {{ isBulkDelete
-            ? t('confirm.deleteMultiple', { count: deleteTargets.length })
-            : t('confirm.delete', { name: deletePrimaryName }) }}
-        </p>
+        <div class="space-y-3">
+          <p class="text-sm text-muted">
+            {{ isBulkDelete
+              ? t('confirm.deleteMultiple', { count: deleteTargets.length })
+              : t('confirm.delete', { name: deletePrimaryName }) }}
+          </p>
+          <div class="max-h-48 overflow-auto rounded border border-default p-2">
+            <p
+              v-for="path in deleteTargetPaths"
+              :key="path"
+              class="font-mono text-xs break-all"
+            >
+              {{ path }}
+            </p>
+          </div>
+        </div>
       </template>
       <template #footer>
         <div class="flex justify-end w-full gap-2">
