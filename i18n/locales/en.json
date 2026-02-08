@@ -12,10 +12,13 @@
     "back": "Back",
     "items_one": "{count} item",
     "items_other": "{count} items",
-    "dropUpload": "Drop files or folders here"
+    "dropUpload": "Drop files or folders here",
+    "addFavorite": "Add to favorites",
+    "removeFavorite": "Remove from favorites"
   },
   "hotkeys": {
     "f1Settings": "F1 Settings",
+    "f2Favorites": "F2 Favorites",
     "f9Upload": "F9 Upload",
     "f10Download": "F10 Download",
     "f3View": "F3 View",
@@ -37,7 +40,8 @@
     "rename": "Rename",
     "upload": "Upload",
     "uploadProgress": "Upload Progress",
-    "download": "Download"
+    "download": "Download",
+    "favorites": "Favorites"
   },
   "fields": {
     "name": "Name",
@@ -61,7 +65,8 @@
     "rename": "Rename",
     "refresh": "Refresh",
     "upload": "Upload",
-    "download": "Download"
+    "download": "Download",
+    "close": "Close"
   },
   "upload": {
     "selectedCount_one": "Selected: {count} item",
@@ -101,6 +106,9 @@
     "german": "German",
     "spanish": "Spanish"
   },
+  "favorites": {
+    "empty": "No favorite folders yet."
+  },
   "loading": "Loading...",
   "alerts": {
     "noAccessFolder": "No access to folder"
@@ -132,7 +140,12 @@
     "fileCreated": "File created",
     "uploadFailed": "Upload error",
     "uploaded": "Upload completed",
-    "downloadFailed": "Download failed"
+    "downloadFailed": "Download failed",
+    "favoritesLoadFailed": "Failed to load favorites",
+    "favoritesUpdateFailed": "Failed to update favorites",
+    "favoriteAdded": "Folder added to favorites",
+    "favoriteRemoved": "Folder removed from favorites",
+    "favoriteOpenFailed": "Failed to open favorite"
   },
   "confirm": {
     "delete": "Delete {name}?",

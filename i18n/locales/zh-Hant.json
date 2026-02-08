@@ -12,10 +12,13 @@
     "back": "返回",
     "items_one": "{count} 個項目",
     "items_other": "{count} 個項目",
-    "dropUpload": "將檔案或資料夾拖曳到此處"
+    "dropUpload": "將檔案或資料夾拖曳到此處",
+    "addFavorite": "加入最愛",
+    "removeFavorite": "從最愛移除"
   },
   "hotkeys": {
     "f1Settings": "F1 設定",
+    "f2Favorites": "F2 最愛",
     "f9Upload": "F9 上傳",
     "f10Download": "F10 下載",
     "f3View": "F3 檢視",
@@ -37,7 +40,8 @@
     "rename": "重新命名",
     "upload": "上傳",
     "uploadProgress": "上傳進度",
-    "download": "下載"
+    "download": "下載",
+    "favorites": "最愛"
   },
   "fields": {
     "name": "名稱",
@@ -61,7 +65,8 @@
     "rename": "重新命名",
     "refresh": "重新整理",
     "upload": "上傳",
-    "download": "下載"
+    "download": "下載",
+    "close": "關閉"
   },
   "upload": {
     "selectedCount_one": "已選擇: {count} 個項目",
@@ -101,6 +106,9 @@
     "german": "德文",
     "spanish": "西班牙文"
   },
+  "favorites": {
+    "empty": "尚無最愛資料夾。"
+  },
   "loading": "載入中...",
   "alerts": {
     "noAccessFolder": "無法存取資料夾"
@@ -132,7 +140,12 @@
     "fileCreated": "檔案已建立",
     "uploadFailed": "上傳失敗",
     "uploaded": "上傳完成",
-    "downloadFailed": "下載失敗"
+    "downloadFailed": "下載失敗",
+    "favoritesLoadFailed": "無法載入最愛",
+    "favoritesUpdateFailed": "無法更新最愛",
+    "favoriteAdded": "資料夾已加入最愛",
+    "favoriteRemoved": "資料夾已從最愛移除",
+    "favoriteOpenFailed": "無法開啟最愛項目"
   },
   "confirm": {
     "delete": "要刪除 {name} 嗎？",

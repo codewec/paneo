@@ -12,10 +12,13 @@
     "back": "Zurück",
     "items_one": "{count} Element",
     "items_other": "{count} Elemente",
-    "dropUpload": "Dateien oder Ordner hier ablegen"
+    "dropUpload": "Dateien oder Ordner hier ablegen",
+    "addFavorite": "Zu Favoriten hinzufügen",
+    "removeFavorite": "Aus Favoriten entfernen"
   },
   "hotkeys": {
     "f1Settings": "F1 Einstellungen",
+    "f2Favorites": "F2 Favoriten",
     "f9Upload": "F9 Hochladen",
     "f10Download": "F10 Herunterladen",
     "f3View": "F3 Anzeigen",
@@ -37,7 +40,8 @@
     "rename": "Umbenennen",
     "upload": "Hochladen",
     "uploadProgress": "Upload-Fortschritt",
-    "download": "Download"
+    "download": "Download",
+    "favorites": "Favoriten"
   },
   "fields": {
     "name": "Name",
@@ -61,7 +65,8 @@
     "rename": "Umbenennen",
     "refresh": "Aktualisieren",
     "upload": "Hochladen",
-    "download": "Herunterladen"
+    "download": "Herunterladen",
+    "close": "Schließen"
   },
   "upload": {
     "selectedCount_one": "Ausgewählt: {count} Element",
@@ -101,6 +106,9 @@
     "german": "Deutsch",
     "spanish": "Spanisch"
   },
+  "favorites": {
+    "empty": "Noch keine Favoritenordner."
+  },
   "loading": "Laden...",
   "alerts": {
     "noAccessFolder": "Kein Zugriff auf den Ordner"
@@ -132,7 +140,12 @@
     "fileCreated": "Datei erstellt",
     "uploadFailed": "Upload-Fehler",
     "uploaded": "Upload abgeschlossen",
-    "downloadFailed": "Download fehlgeschlagen"
+    "downloadFailed": "Download fehlgeschlagen",
+    "favoritesLoadFailed": "Favoriten konnten nicht geladen werden",
+    "favoritesUpdateFailed": "Favoriten konnten nicht aktualisiert werden",
+    "favoriteAdded": "Ordner zu Favoriten hinzugefügt",
+    "favoriteRemoved": "Ordner aus Favoriten entfernt",
+    "favoriteOpenFailed": "Favorit konnte nicht geöffnet werden"
   },
   "confirm": {
     "delete": "{name} löschen?",

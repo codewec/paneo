@@ -10,9 +10,16 @@ Built with Nuxt 4 + Nuxt UI, it is designed to run in Docker with filesystem acc
 - File/folder operations: create, rename, copy, move, delete
 - Multi-select support (keyboard + mouse)
 - File viewer and text editor
-- Upload with drag-and-drop and file/folder picker
+- Favorites for folders:
+  - `F2` opens favorites modal
+  - star icon in folder rows to add/remove favorites
+  - `F` toggles favorite for current selected folder
+- Upload with drag-and-drop and file/folder picker (`F9`)
+- Download files/folders to local machine (`F10`)
+  - single file downloads directly
+  - multiple selected items are downloaded as `.tar.gz`
 - Progress tracking for copy/upload (modal + toast, minimize/cancel)
-- Keyboard workflow (`Tab`, arrows, `PgUp/PgDn`, `Enter`, `F1`-`F8`)
+- Keyboard workflow (`Tab`, arrows, `PgUp/PgDn`, `Enter`, `F1`-`F10`, `Insert`, `T`, `F`)
 - Localization: RU, EN, Traditional Chinese, German, Spanish
 
 ## Quick Start (Docker Compose)
@@ -27,11 +34,29 @@ GID=1000
 PANEO_SOURCE_1=/home/user/Documents
 PANEO_SOURCE_2=/mnt/storage
 FILE_MANAGER_ROOTS="docs=/data/source-1;storage=/data/source-2"
+
+# Persist paneo internal data (favorites, service state)
+PANEO_DATA_DIR=/home/user/.local/share/paneo
 ```
 
 `PANEO_SOURCE_1` and `PANEO_SOURCE_2` are required (no default fallback paths).
 
-### 2) Run production container
+### 2) Mount a persistent data volume (recommended)
+
+Add this volume to `docker-compose.yml`:
+
+```yaml
+services:
+  paneo:
+    volumes:
+      - ${PANEO_SOURCE_1}:/data/source-1
+      - ${PANEO_SOURCE_2}:/data/source-2
+      - ${PANEO_DATA_DIR}:/var/lib/paneo
+```
+
+This mount is recommended so favorites and paneo internal data are not lost when the container is recreated.
+
+### 3) Run production container
 
 ```bash
 docker compose up -d
@@ -39,7 +64,7 @@ docker compose up -d
 
 Open: `http://localhost:3000`
 
-### 3) Stop
+### 4) Stop
 
 ```bash
 docker compose down
@@ -97,13 +122,14 @@ If no root is selected in a panel, it shows the source list.
 
 ### What Variables Mean
 
-Use only 3 variables in `.env`:
+Common `.env` variables:
 
 - `UID`
 - `GID`
 - `PANEO_SOURCE_1`
 - `PANEO_SOURCE_2`
 - `FILE_MANAGER_ROOTS`
+- `PANEO_DATA_DIR` (recommended)
 
 Simple meaning:
 
@@ -114,13 +140,16 @@ Simple meaning:
   - `/data/source-2`
 - `FILE_MANAGER_ROOTS` tells paneo what to show in the root list.
 - In `FILE_MANAGER_ROOTS` you must use container paths (`/data/source-1`, `/data/source-2`), not host paths.
+- `PANEO_DATA_DIR` is a host folder mounted into `/var/lib/paneo` to persist paneo internal data.
+- Favorites file path is fixed internally as `/var/lib/paneo/favorites.json`.
 
 Important:
 
-1. A folder must be mounted (`PANEO_SOURCE_1` / `PANEO_SOURCE_2`).
+1. A source folder must be mounted (`PANEO_SOURCE_1` / `PANEO_SOURCE_2`).
 2. The same mounted path must be listed in `FILE_MANAGER_ROOTS`.
+3. For persistent favorites, mount `PANEO_DATA_DIR` to `/var/lib/paneo`.
 
-If these paths do not match, source navigation will fail.
+If these paths do not match, source navigation or persistence will fail.
 
 ## Technical Details
 
@@ -153,9 +182,11 @@ pnpm build
 - `app/pages/index.vue` - page layout and UI wiring
 - `app/composables/useFileManagerPanels.ts` - panel state, navigation, selection
 - `app/composables/useFileManagerActions.ts` - operations, progress tasks, action gating
+- `app/composables/useFileManagerFavorites.ts` - favorites state and interactions
 - `app/composables/useFileManagerApi.ts` - frontend API client
 - `app/composables/useFileManagerHotkeys.ts` - keyboard shortcuts
 - `server/utils/file-manager.ts` - secure filesystem logic (normalization, root sandboxing)
+- `server/utils/favorites-store.ts` - server-side favorites storage
 - `server/api/fs/*` - server API handlers
 - `i18n/locales/*` - localization files
 

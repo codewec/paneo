@@ -14,10 +14,13 @@
     "items_few": "{count} элемента",
     "items_many": "{count} элементов",
     "items_other": "{count} элемента",
-    "dropUpload": "Перетащите файлы или папки сюда"
+    "dropUpload": "Перетащите файлы или папки сюда",
+    "addFavorite": "Добавить в избранное",
+    "removeFavorite": "Удалить из избранного"
   },
   "hotkeys": {
     "f1Settings": "F1 Настройки",
+    "f2Favorites": "F2 Избранное",
     "f9Upload": "F9 Загрузка",
     "f10Download": "F10 Скачать",
     "f3View": "F3 Просмотр",
@@ -39,7 +42,8 @@
     "rename": "Переименование",
     "upload": "Загрузка",
     "uploadProgress": "Прогресс загрузки",
-    "download": "Скачивание"
+    "download": "Скачивание",
+    "favorites": "Избранное"
   },
   "fields": {
     "name": "Имя",
@@ -63,7 +67,8 @@
     "rename": "Переименовать",
     "refresh": "Обновить",
     "upload": "Загрузить",
-    "download": "Скачать"
+    "download": "Скачать",
+    "close": "Закрыть"
   },
   "upload": {
     "selectedCount_one": "Выбрано: {count} элемент",
@@ -105,6 +110,9 @@
     "german": "Deutsch",
     "spanish": "Español"
   },
+  "favorites": {
+    "empty": "Избранных папок пока нет."
+  },
   "loading": "Загрузка...",
   "alerts": {
     "noAccessFolder": "Нет доступа к папке"
@@ -136,7 +144,12 @@
     "fileCreated": "Файл создан",
     "uploadFailed": "Ошибка загрузки",
     "uploaded": "Загрузка завершена",
-    "downloadFailed": "Ошибка скачивания"
+    "downloadFailed": "Ошибка скачивания",
+    "favoritesLoadFailed": "Не удалось загрузить избранное",
+    "favoritesUpdateFailed": "Не удалось обновить избранное",
+    "favoriteAdded": "Папка добавлена в избранное",
+    "favoriteRemoved": "Папка удалена из избранного",
+    "favoriteOpenFailed": "Не удалось открыть избранную папку"
   },
   "confirm": {
     "delete": "Удалить {name}?",

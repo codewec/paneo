@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
+import type { PanelEntry } from '~/types/file-manager'
 
 const LOCALE_COOKIE_KEY = 'paneo.locale'
 const SUPPORTED_LOCALES = ['ru', 'en', 'zh-Hant', 'de', 'es'] as const
@@ -159,6 +160,18 @@ const {
   startUploadForPanel
 } = useFileManagerActions(panels)
 
+const {
+  favoritesOpen,
+  favoritesLoading,
+  favoritesWithLabel,
+  isFavorite,
+  openFavorites,
+  refreshFavorites,
+  removeFavoriteItem,
+  toggleFavorite,
+  openFavoriteInActivePanel
+} = useFileManagerFavorites(panels)
+
 const activePanelSelectedEntry = computed(() => {
   const panel = activePanel.value
   if (!panel.selectedKey) {
@@ -182,6 +195,7 @@ const downloadTargetPaths = computed(() => downloadTargets.value.map((target) =>
   return rootName + ':/' + target.path
 }))
 
+const canUseF2 = computed(() => isClientMounted.value)
 const canUseF3 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseFileActions.value)
 const canUseF9 = computed(() => isClientMounted.value && !!activePanel.value.rootId && canUpload.value)
 const canUseF10 = computed(() => isClientMounted.value && canDownload.value)
@@ -190,6 +204,8 @@ const canUseF5 = computed(() => isClientMounted.value && canUseEntryActions.valu
 const canUseF6 = computed(() => isClientMounted.value && !isMultiActionSelection.value && canUseEntryActions.value && canRename.value)
 const canUseF7 = computed(() => isClientMounted.value && !isMultiActionSelection.value && !!activePanel.value.rootId && canCreateDir.value)
 const canUseF8 = computed(() => isClientMounted.value && canUseEntryActions.value && canDelete.value)
+const favoritesSelectedIndex = ref(0)
+const selectedFavoriteItem = computed(() => favoritesWithLabel.value[favoritesSelectedIndex.value] || null)
 const copyProgressStatusLabel = computed(() => {
   const status = activeCopyTask.value?.status
   if (!status) {
@@ -242,6 +258,87 @@ function openUploadModal() {
   uploadFiles.value = []
   uploadFolderFiles.value = []
   uploadOpen.value = true
+}
+
+function openFavoritesModal() {
+  if (!canUseF2.value) {
+    return
+  }
+
+  void openFavorites()
+}
+
+function isEntryFavorite(panel: typeof leftPanel, entry: PanelEntry) {
+  if (!panel.rootId || entry.kind !== 'dir') {
+    return false
+  }
+
+  return isFavorite(panel.rootId, entry.path)
+}
+
+function onFavoriteToggle(panel: typeof leftPanel, entry: PanelEntry) {
+  if (entry.kind !== 'dir') {
+    return
+  }
+
+  void toggleFavorite(panel, entry)
+}
+
+function isTypingElement(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  const tag = target.tagName.toLowerCase()
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+    return true
+  }
+
+  return target.isContentEditable
+}
+
+function toggleActivePanelFavoriteByKeyboard() {
+  const panel = activePanel.value
+  const entry = activePanelSelectedEntry.value
+
+  if (!panel.rootId || !entry || entry.kind !== 'dir') {
+    return
+  }
+
+  onFavoriteToggle(panel, entry)
+}
+
+function handleFavoritesModalKeydown(event: KeyboardEvent) {
+  if (!favoritesOpen.value || isTypingElement(event.target)) {
+    return
+  }
+
+  const total = favoritesWithLabel.value.length
+  if (!total) {
+    return
+  }
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    favoritesSelectedIndex.value = (favoritesSelectedIndex.value + 1) % total
+    return
+  }
+
+  if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    favoritesSelectedIndex.value = (favoritesSelectedIndex.value - 1 + total) % total
+    return
+  }
+
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const favorite = selectedFavoriteItem.value
+    if (favorite) {
+      void openFavoriteInActivePanel(favorite)
+    }
+  }
 }
 
 function setTheme(value: 'light' | 'dark') {
@@ -593,6 +690,7 @@ function isModalOpen() {
     || copyProgressOpen.value
     || deleteConfirmOpen.value
     || downloadConfirmOpen.value
+    || favoritesOpen.value
     || settingsOpen.value
 }
 
@@ -705,6 +803,7 @@ useFileManagerHotkeys({
   onPageUp: () => moveSelectionByPage(activePanel.value, -1),
   onEnter: () => openSelectedEntry(activePanel.value),
   onF1: openSettings,
+  onF2: openFavoritesModal,
   onF3: () => canUseF3.value ? openViewer() : Promise.resolve(),
   onF4: () => canUseF4.value ? openEditor() : Promise.resolve(),
   onF5: () => canUseF5.value ? Promise.resolve(openCopy()) : Promise.resolve(),
@@ -721,6 +820,7 @@ useFileManagerHotkeys({
       openDownload()
     }
   },
+  onF: toggleActivePanelFavoriteByKeyboard,
   onInsert: () => toggleMarkAndMoveNext(activePanel.value),
   onT: () => toggleMarkAndMoveNext(activePanel.value)
 })
@@ -771,10 +871,32 @@ watch(copyConfirmOpen, (isOpen) => {
   window.removeEventListener('keydown', handleCopyConfirmEnter, true)
 })
 
+watch(favoritesWithLabel, (items) => {
+  if (!items.length) {
+    favoritesSelectedIndex.value = 0
+    return
+  }
+
+  if (favoritesSelectedIndex.value >= items.length) {
+    favoritesSelectedIndex.value = items.length - 1
+  }
+})
+
+watch(favoritesOpen, (isOpen) => {
+  if (isOpen) {
+    favoritesSelectedIndex.value = 0
+    window.addEventListener('keydown', handleFavoritesModalKeydown, true)
+    return
+  }
+
+  window.removeEventListener('keydown', handleFavoritesModalKeydown, true)
+})
+
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleDeleteConfirmEnter, true)
   window.removeEventListener('keydown', handleDownloadConfirmEnter, true)
   window.removeEventListener('keydown', handleCopyConfirmEnter, true)
+  window.removeEventListener('keydown', handleFavoritesModalKeydown, true)
 })
 
 onMounted(() => {
@@ -786,6 +908,7 @@ watch(locale, (value) => {
 })
 
 await initialize()
+await refreshFavorites()
 </script>
 
 <template>
@@ -926,7 +1049,7 @@ await initialize()
                 <UButton
                   v-for="entry in panel.entries"
                   :key="entry.key"
-                  class="w-full justify-start"
+                  class="group w-full justify-start"
                   :class="[
                     isSelected(panel, entry) && isMarked(panel, entry) ? 'text-warning' : ''
                   ]"
@@ -954,12 +1077,26 @@ await initialize()
                     />
                   </template>
 
-                  <span class="truncate">{{ entry.name }}</span>
+                  <span class="min-w-0 flex-1 truncate text-left">{{ entry.name }}</span>
 
                   <template #trailing>
-                    <span class="text-xs text-muted">
-                      {{ entry.kind === 'file' ? formatSize(entry.size) : '' }}
-                    </span>
+                    <div class="ml-auto flex shrink-0 items-center gap-2">
+                      <span class="text-xs text-muted">
+                        {{ entry.kind === 'file' ? formatSize(entry.size) : '' }}
+                      </span>
+                      <UIcon
+                        v-if="entry.kind === 'dir'"
+                        name="i-lucide-star"
+                        :class="[
+                          'size-4 shrink-0 cursor-pointer transition-opacity',
+                          isEntryFavorite(panel, entry)
+                            ? 'opacity-100 text-warning'
+                            : 'opacity-0 text-muted group-hover:opacity-100'
+                        ]"
+                        :title="isEntryFavorite(panel, entry) ? t('panel.removeFavorite') : t('panel.addFavorite')"
+                        @click.stop.prevent="onFavoriteToggle(panel, entry)"
+                      />
+                    </div>
                   </template>
                 </UButton>
               </div>
@@ -978,7 +1115,7 @@ await initialize()
 
       <UCard :ui="{ body: 'p-2' }">
         <ClientOnly>
-          <div class="grid grid-cols-2 gap-2 md:grid-cols-9">
+          <div class="grid grid-cols-2 gap-2 md:grid-cols-10">
             <UButton
               :label="t('hotkeys.f1Settings')"
               icon="i-lucide-settings"
@@ -986,6 +1123,15 @@ await initialize()
               variant="outline"
               class="justify-center"
               @click="openSettings"
+            />
+            <UButton
+              :label="t('hotkeys.f2Favorites')"
+              icon="i-lucide-star"
+              color="neutral"
+              variant="outline"
+              class="justify-center"
+              :disabled="!canUseF2"
+              @click="openFavoritesModal"
             />
             <UButton
               :label="t('hotkeys.f3View')"
@@ -1476,6 +1622,69 @@ await initialize()
             :label="t('buttons.download')"
             icon="i-lucide-download"
             @click="confirmDownload"
+          />
+        </div>
+      </template>
+    </UModal>
+    <UModal
+      v-model:open="favoritesOpen"
+      :title="t('modal.favorites')"
+    >
+      <template #body>
+        <div class="space-y-3">
+          <p
+            v-if="favoritesLoading"
+            class="text-sm text-muted"
+          >
+            {{ t('loading') }}
+          </p>
+          <p
+            v-else-if="!favoritesWithLabel.length"
+            class="text-sm text-muted"
+          >
+            {{ t('favorites.empty') }}
+          </p>
+          <div
+            v-else
+            class="max-h-72 space-y-1 overflow-auto"
+          >
+            <div
+              v-for="(item, index) in favoritesWithLabel"
+              :key="item.rootId + ':' + item.path"
+              :class="[
+                'flex items-center gap-2 rounded border p-2 transition',
+                index === favoritesSelectedIndex
+                  ? 'border-primary bg-primary/10'
+                  : 'border-default'
+              ]"
+            >
+              <UButton
+                class="min-w-0 flex-1 justify-start"
+                color="neutral"
+                variant="ghost"
+                :title="item.fullPath"
+                @click="favoritesSelectedIndex = index; openFavoriteInActivePanel(item)"
+              >
+                <span class="truncate font-mono text-xs">{{ item.fullPath }}</span>
+              </UButton>
+              <UButton
+                icon="i-lucide-trash-2"
+                color="error"
+                variant="ghost"
+                :title="t('panel.removeFavorite')"
+                @click="removeFavoriteItem(item)"
+              />
+            </div>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full">
+          <UButton
+            color="neutral"
+            variant="outline"
+            :label="t('buttons.close')"
+            @click="favoritesOpen = false"
           />
         </div>
       </template>

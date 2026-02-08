@@ -3,6 +3,11 @@ export interface RootItem {
   name: string
 }
 
+export interface FavoriteFolder {
+  rootId: string
+  path: string
+}
+
 export interface FsEntry {
   name: string
   path: string

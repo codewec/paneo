@@ -12,10 +12,13 @@
     "back": "Atrás",
     "items_one": "{count} elemento",
     "items_other": "{count} elementos",
-    "dropUpload": "Arrastra archivos o carpetas aquí"
+    "dropUpload": "Arrastra archivos o carpetas aquí",
+    "addFavorite": "Añadir a favoritos",
+    "removeFavorite": "Quitar de favoritos"
   },
   "hotkeys": {
     "f1Settings": "F1 Ajustes",
+    "f2Favorites": "F2 Favoritos",
     "f9Upload": "F9 Subir",
     "f10Download": "F10 Descargar",
     "f3View": "F3 Ver",
@@ -37,7 +40,8 @@
     "rename": "Renombrar",
     "upload": "Subir",
     "uploadProgress": "Progreso de subida",
-    "download": "Descarga"
+    "download": "Descarga",
+    "favorites": "Favoritos"
   },
   "fields": {
     "name": "Nombre",
@@ -61,7 +65,8 @@
     "rename": "Renombrar",
     "refresh": "Actualizar",
     "upload": "Subir",
-    "download": "Descargar"
+    "download": "Descargar",
+    "close": "Cerrar"
   },
   "upload": {
     "selectedCount_one": "Seleccionado: {count} elemento",
@@ -101,6 +106,9 @@
     "german": "Alemán",
     "spanish": "Español"
   },
+  "favorites": {
+    "empty": "Aún no hay carpetas favoritas."
+  },
   "loading": "Cargando...",
   "alerts": {
     "noAccessFolder": "Sin acceso a la carpeta"
@@ -132,7 +140,12 @@
     "fileCreated": "Archivo creado",
     "uploadFailed": "Error de subida",
     "uploaded": "Subida completada",
-    "downloadFailed": "Error de descarga"
+    "downloadFailed": "Error de descarga",
+    "favoritesLoadFailed": "No se pudieron cargar los favoritos",
+    "favoritesUpdateFailed": "No se pudieron actualizar los favoritos",
+    "favoriteAdded": "Carpeta añadida a favoritos",
+    "favoriteRemoved": "Carpeta eliminada de favoritos",
+    "favoriteOpenFailed": "No se pudo abrir el favorito"
   },
   "confirm": {
     "delete": "¿Eliminar {name}?",

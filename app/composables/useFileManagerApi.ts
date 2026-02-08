@@ -1,4 +1,4 @@
-import type { ListResponse, RootItem } from '~/types/file-manager'
+import type { FavoriteFolder, ListResponse, RootItem } from '~/types/file-manager'
 
 export function useFileManagerApi() {
   const runtimeConfig = useRuntimeConfig()
@@ -66,6 +66,23 @@ export function useFileManagerApi() {
 
   async function fetchRoots() {
     return await $fetch<{ roots: RootItem[] }>('/api/fs/roots')
+  }
+  async function fetchFavorites() {
+    return await $fetch<{ items: FavoriteFolder[] }>('/api/fs/favorites')
+  }
+
+  async function addFavorite(rootId: string, path: string) {
+    return await $fetch<{ items: FavoriteFolder[] }>('/api/fs/favorites-add', {
+      method: 'POST',
+      body: { rootId, path }
+    })
+  }
+
+  async function removeFavorite(rootId: string, path: string) {
+    return await $fetch<{ items: FavoriteFolder[] }>('/api/fs/favorites-remove', {
+      method: 'POST',
+      body: { rootId, path }
+    })
   }
 
   async function fetchList(rootId: string, path: string) {
@@ -330,6 +347,9 @@ export function useFileManagerApi() {
 
   return {
     fetchRoots,
+    fetchFavorites,
+    addFavorite,
+    removeFavorite,
     fetchList,
     fetchMeta,
     readText,
