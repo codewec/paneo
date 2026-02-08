@@ -34,6 +34,36 @@ export function useFileManagerApi() {
     })
   }
 
+  function createAbortError() {
+    const abortError = new Error('Upload canceled')
+    ;(abortError as { name: string }).name = 'AbortError'
+    return abortError
+  }
+
+  function isAbortLikeError(error: unknown, signal?: AbortSignal) {
+    if (signal?.aborted) {
+      return true
+    }
+
+    const err = error as { name?: string, message?: string }
+    const message = (err?.message || '').toLowerCase()
+    return err?.name === 'AbortError' || message.includes('aborted') || message.includes('operation aborted')
+  }
+
+  async function cancelUploadTemp(rootId: string, uploadIds: string[]) {
+    if (!uploadIds.length) {
+      return
+    }
+
+    await $fetch('/api/fs/upload-cancel', {
+      method: 'POST',
+      body: {
+        rootId,
+        uploadIds
+      }
+    })
+  }
+
   async function fetchRoots() {
     return await $fetch<{ roots: RootItem[] }>('/api/fs/roots')
   }
@@ -101,61 +131,78 @@ export function useFileManagerApi() {
   async function upload(rootId: string, path: string, files: File[], options?: UploadOptions) {
     const totalBytes = files.reduce((sum, file) => sum + file.size, 0)
     let uploadedBytes = 0
+    const startedUploadIds: string[] = []
 
-    for (const [fileIndex, file] of files.entries()) {
-      const rawRelativePath = (file as File & { webkitRelativePath?: string, __paneoRelativePath?: string }).webkitRelativePath
-      const fallbackRelativePath = (file as File & { __paneoRelativePath?: string }).__paneoRelativePath
-      const relativePath = rawRelativePath || fallbackRelativePath || file.name
-      const uploadId = globalThis.crypto?.randomUUID?.().replaceAll('-', '')
-        || `${Date.now()}${Math.random().toString(36).slice(2, 10)}`
-      const totalChunks = Math.max(1, Math.ceil(file.size / UPLOAD_CHUNK_SIZE))
+    try {
+      for (const [fileIndex, file] of files.entries()) {
+        const rawRelativePath = (file as File & { webkitRelativePath?: string, __paneoRelativePath?: string }).webkitRelativePath
+        const fallbackRelativePath = (file as File & { __paneoRelativePath?: string }).__paneoRelativePath
+        const relativePath = rawRelativePath || fallbackRelativePath || file.name
+        const uploadId = globalThis.crypto?.randomUUID?.().replaceAll('-', '')
+          || (String(Date.now()) + Math.random().toString(36).slice(2, 10))
+        startedUploadIds.push(uploadId)
+        const totalChunks = Math.max(1, Math.ceil(file.size / UPLOAD_CHUNK_SIZE))
 
-      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
-        if (options?.signal?.aborted) {
-          const abortError = new Error('Upload canceled')
-          ;(abortError as { name: string }).name = 'AbortError'
-          throw abortError
-        }
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+          if (options?.signal?.aborted) {
+            throw createAbortError()
+          }
 
-        const start = chunkIndex * UPLOAD_CHUNK_SIZE
-        const end = Math.min(file.size, start + UPLOAD_CHUNK_SIZE)
-        const chunk = file.slice(start, end)
+          const start = chunkIndex * UPLOAD_CHUNK_SIZE
+          const end = Math.min(file.size, start + UPLOAD_CHUNK_SIZE)
+          const chunk = file.slice(start, end)
 
-        await $fetch<{ ok: true, completed: boolean }>('/api/fs/upload', {
-          method: 'POST',
-          query: {
-            rootId,
-            path
-          },
-          headers: {
-            'x-upload-id': uploadId,
-            'x-file-path': encodeURIComponent(relativePath),
-            'x-chunk-index': String(chunkIndex),
-            'x-total-chunks': String(totalChunks)
-          },
-          body: chunk,
-          signal: options?.signal
-        })
+          try {
+            await $fetch<{ ok: true, completed: boolean }>('/api/fs/upload', {
+              method: 'POST',
+              query: {
+                rootId,
+                path
+              },
+              headers: {
+                'x-upload-id': uploadId,
+                'x-file-path': encodeURIComponent(relativePath),
+                'x-chunk-index': String(chunkIndex),
+                'x-total-chunks': String(totalChunks)
+              },
+              body: chunk,
+              signal: options?.signal
+            })
+          } catch (error) {
+            if (isAbortLikeError(error, options?.signal)) {
+              throw createAbortError()
+            }
 
-        uploadedBytes += chunk.size
-        options?.onProgress?.({
-          totalFiles: files.length,
-          processedFiles: chunkIndex === totalChunks - 1
-            ? fileIndex + 1
-            : fileIndex,
-          currentFile: relativePath,
-          totalBytes,
-          uploadedBytes
-        })
-        if (UPLOAD_CHUNK_DELAY_MS > 0 && chunkIndex < totalChunks - 1) {
-          await sleep(UPLOAD_CHUNK_DELAY_MS)
+            throw error
+          }
+
+          uploadedBytes += chunk.size
+          options?.onProgress?.({
+            totalFiles: files.length,
+            processedFiles: chunkIndex === totalChunks - 1
+              ? fileIndex + 1
+              : fileIndex,
+            currentFile: relativePath,
+            totalBytes,
+            uploadedBytes
+          })
+          if (UPLOAD_CHUNK_DELAY_MS > 0 && chunkIndex < totalChunks - 1) {
+            await sleep(UPLOAD_CHUNK_DELAY_MS)
+          }
         }
       }
-    }
 
-    return {
-      ok: true as const,
-      uploaded: files.length
+      return {
+        ok: true as const,
+        uploaded: files.length
+      }
+    } catch (error) {
+      if (isAbortLikeError(error, options?.signal)) {
+        await cancelUploadTemp(rootId, startedUploadIds).catch(() => undefined)
+        throw createAbortError()
+      }
+
+      throw error
     }
   }
 

@@ -1,9 +1,7 @@
-import { appendFile, mkdir, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { getHeader, getQuery, readRawBody } from 'h3'
-import { normalizeUploadFilePath, resolveWithinRoot } from '~~/server/utils/file-manager'
-
-const TEMP_UPLOAD_DIR = '.paneo-upload-tmp'
+import { TEMP_UPLOAD_DIR, normalizeUploadFilePath, resolveWithinRoot, validateUploadId } from '~~/server/utils/file-manager'
 
 function parsePositiveInt(value: string | undefined, field: string) {
   const parsed = Number.parseInt(value || '', 10)
@@ -26,12 +24,6 @@ function decodeRelativePath(encoded: string) {
     return decodeURIComponent(encoded)
   } catch {
     throw createError({ statusCode: 400, statusMessage: 'Invalid x-file-path header' })
-  }
-}
-
-function validateUploadId(uploadId: string) {
-  if (!/^[a-zA-Z0-9_-]{8,128}$/.test(uploadId)) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid x-upload-id header' })
   }
 }
 
@@ -81,6 +73,16 @@ export default defineEventHandler(async (event) => {
     await mkdir(dirname(target.absPath), { recursive: true })
     await rm(target.absPath, { force: true })
     await rename(tempFile.absPath, target.absPath)
+    try {
+      const remaining = await readdir(tempDir.absPath)
+      if (!remaining.length) {
+        await rm(tempDir.absPath, { recursive: true, force: true })
+      }
+    } catch (error: unknown) {
+      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        throw error
+      }
+    }
   }
 
   return {

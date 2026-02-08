@@ -111,6 +111,11 @@ function getParentPath(path: string) {
 
   return segments.slice(0, -1).join('/')
 }
+function isAbortLikeError(error: unknown) {
+  const err = error as { name?: string, message?: string }
+  const message = (err?.message || '').toLowerCase()
+  return err?.name === 'AbortError' || message.includes('aborted') || message.includes('operation aborted')
+}
 
 export function useFileManagerActions(panels: PanelsContext) {
   const api = useFileManagerApi()
@@ -1257,8 +1262,7 @@ export function useFileManagerActions(panels: PanelsContext) {
         task.error = ''
         await finalizeUploadTask(task)
       } catch (error) {
-        const err = error as { name?: string }
-        if (err?.name === 'AbortError') {
+        if (isAbortLikeError(error)) {
           task.status = 'canceled'
           task.error = ''
         } else {

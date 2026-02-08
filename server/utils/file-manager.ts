@@ -21,6 +21,7 @@ export interface FileListEntry {
   size: number
   mtime: string
 }
+export const TEMP_UPLOAD_DIR = '.paneo-upload-tmp'
 
 function getRootsFromConfig(): ResolvedRoot[] {
   const config = useRuntimeConfig()
@@ -253,6 +254,32 @@ export function normalizeUploadFilePath(rawPath: string) {
   }
 
   return normalized
+}
+
+export function validateUploadId(uploadId: string) {
+  if (!/^[a-zA-Z0-9_-]{8,128}$/.test(uploadId)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid x-upload-id header' })
+  }
+}
+
+export async function cleanupUploadTemp(rootId: string, uploadId: string) {
+  validateUploadId(uploadId)
+
+  const tempDir = resolveWithinRoot(rootId, TEMP_UPLOAD_DIR)
+  const tempFile = resolveWithinRoot(rootId, TEMP_UPLOAD_DIR + '/' + uploadId + '.part')
+
+  await rm(tempFile.absPath, { force: true })
+
+  try {
+    const remaining = await readdir(tempDir.absPath)
+    if (!remaining.length) {
+      await rm(tempDir.absPath, { recursive: true, force: true })
+    }
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      throw error
+    }
+  }
 }
 
 export async function uploadFiles(rootId: string, basePath: string | null | undefined, files: Array<{ relativePath: string, data: Uint8Array }>) {
