@@ -1,6 +1,7 @@
 {
   "app": {
-    "description": "Administrador de archivos de dos paneles con Nuxt UI"
+    "description": "Administrador de archivos de dos paneles con Nuxt UI",
+    "fileManager": "Administrador de archivos"
   },
   "panel": {
     "sources": "Orígenes",

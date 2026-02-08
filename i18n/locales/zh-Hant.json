@@ -1,6 +1,7 @@
 {
   "app": {
-    "description": "以 Nuxt UI 打造的雙欄檔案管理器"
+    "description": "以 Nuxt UI 打造的雙欄檔案管理器",
+    "fileManager": "檔案管理器"
   },
   "panel": {
     "sources": "來源",

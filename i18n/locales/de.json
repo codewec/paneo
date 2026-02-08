@@ -1,6 +1,7 @@
 {
   "app": {
-    "description": "Zweispaltiger Dateimanager mit Nuxt UI"
+    "description": "Zweispaltiger Dateimanager mit Nuxt UI",
+    "fileManager": "Dateimanager"
   },
   "panel": {
     "sources": "Quellen",

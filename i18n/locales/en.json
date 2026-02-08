@@ -1,6 +1,7 @@
 {
   "app": {
-    "description": "Two-pane file manager powered by Nuxt UI"
+    "description": "Two-pane file manager powered by Nuxt UI",
+    "fileManager": "File Manager"
   },
   "panel": {
     "sources": "Sources",

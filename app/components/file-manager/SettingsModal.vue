@@ -39,6 +39,20 @@ const modelLanguage = computed({
   >
     <template #body>
       <div class="space-y-4">
+        <div class="flex flex-col items-center gap-2 pb-1 text-center">
+          <img
+            src="/web-app-manifest-192x192.png"
+            alt="Paneo"
+            class="size-16 rounded-lg"
+          >
+          <p class="text-base font-semibold">
+            Paneo
+          </p>
+          <p class="text-sm text-muted">
+            {{ t('app.fileManager') }}
+          </p>
+        </div>
+
         <div class="space-y-2">
           <p class="text-sm text-muted">
             {{ t('settings.language') }}

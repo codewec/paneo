@@ -1,6 +1,7 @@
 {
   "app": {
-    "description": "Двухпанельный файловый менеджер на Nuxt UI"
+    "description": "Двухпанельный файловый менеджер на Nuxt UI",
+    "fileManager": "Файловый менеджер"
   },
   "panel": {
     "sources": "Источники",
