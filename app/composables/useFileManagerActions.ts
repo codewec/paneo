@@ -36,7 +36,11 @@ interface CopyTask {
   processedFiles: number
   copiedFiles: number
   skipped: number
+  totalBytes: number
+  processedBytes: number
   currentFile: string
+  currentFileBytes: number
+  currentFileTotalBytes: number
   error: string
   minimized: boolean
   toastId: string | number | null
@@ -58,6 +62,17 @@ interface UploadTask {
   minimized: boolean
   toastId: string | number | null
   controller: AbortController
+}
+
+interface CopyTaskProgressPayload {
+  totalFiles?: number | null
+  processedFiles?: number | null
+  copiedFiles?: number | null
+  skipped?: number | null
+  totalBytes?: number | null
+  processedBytes?: number | null
+  currentFileBytes?: number | null
+  currentFileTotalBytes?: number | null
 }
 
 interface CopyRequestItem {
@@ -101,6 +116,50 @@ function getParentPath(path: string) {
 
   return segments.slice(0, -1).join('/')
 }
+
+function toSafeNonNegativeNumber(value: unknown) {
+  const normalized = Number(value)
+  if (!Number.isFinite(normalized) || normalized < 0) {
+    return 0
+  }
+
+  return normalized
+}
+
+function normalizeCopyProgress(progress: CopyTaskProgressPayload) {
+  const totalFiles = toSafeNonNegativeNumber(progress.totalFiles)
+  const processedFilesRaw = toSafeNonNegativeNumber(progress.processedFiles)
+  const copiedFiles = toSafeNonNegativeNumber(progress.copiedFiles)
+  const skipped = toSafeNonNegativeNumber(progress.skipped)
+  const totalBytes = toSafeNonNegativeNumber(progress.totalBytes)
+  const processedBytesRaw = toSafeNonNegativeNumber(progress.processedBytes)
+  const currentFileTotalBytes = toSafeNonNegativeNumber(progress.currentFileTotalBytes)
+  const currentFileBytes = toSafeNonNegativeNumber(progress.currentFileBytes)
+
+  const completedByResult = copiedFiles + skipped
+  const normalizedTotal = Math.max(totalFiles, processedFilesRaw, completedByResult)
+  const normalizedProcessed = Math.min(
+    normalizedTotal,
+    Math.max(processedFilesRaw, completedByResult)
+  )
+  const normalizedTotalBytes = Math.max(totalBytes, processedBytesRaw)
+  const normalizedProcessedBytes = Math.min(
+    normalizedTotalBytes,
+    Math.max(0, processedBytesRaw)
+  )
+
+  return {
+    totalFiles: normalizedTotal,
+    processedFiles: normalizedProcessed,
+    copiedFiles,
+    skipped,
+    totalBytes: normalizedTotalBytes,
+    processedBytes: normalizedProcessedBytes,
+    currentFileBytes: Math.min(currentFileTotalBytes || currentFileBytes, currentFileBytes),
+    currentFileTotalBytes
+  }
+}
+
 function isAbortLikeError(error: unknown) {
   const err = error as { name?: string, message?: string }
   const message = (err?.message || '').toLowerCase()
@@ -274,11 +333,20 @@ export function useFileManagerActions(panels: PanelsContext) {
 
   const activeCopyProgressPercent = computed(() => {
     const task = activeCopyTask.value
-    if (!task || !task.totalFiles) {
+    if (!task) {
       return null
     }
 
-    return Math.max(0, Math.min(100, Math.round((task.processedFiles / task.totalFiles) * 100)))
+    const normalized = normalizeCopyProgress(task)
+    if (normalized.totalBytes > 0) {
+      return Math.max(0, Math.min(100, Math.round((normalized.processedBytes / normalized.totalBytes) * 100)))
+    }
+
+    if (!normalized.totalFiles) {
+      return null
+    }
+
+    return Math.max(0, Math.min(100, Math.round((normalized.processedFiles / normalized.totalFiles) * 100)))
   })
 
   const activeUploadTask = computed(() => {
@@ -411,11 +479,16 @@ export function useFileManagerActions(panels: PanelsContext) {
   }
 
   function taskPercent(task: CopyTask) {
-    if (!task.totalFiles) {
+    const normalized = normalizeCopyProgress(task)
+    if (normalized.totalBytes > 0) {
+      return Math.max(0, Math.min(100, Math.round((normalized.processedBytes / normalized.totalBytes) * 100)))
+    }
+
+    if (!normalized.totalFiles) {
       return 0
     }
 
-    return Math.max(0, Math.min(100, Math.round((task.processedFiles / task.totalFiles) * 100)))
+    return Math.max(0, Math.min(100, Math.round((normalized.processedFiles / normalized.totalFiles) * 100)))
   }
 
   function uploadTaskPercent(task: UploadTask) {
@@ -697,10 +770,15 @@ export function useFileManagerActions(panels: PanelsContext) {
 
         const status = await api.getCopyStatus(current.jobId)
         const previousProcessedFiles = current.processedFiles
-        current.totalFiles = status.progress.totalFiles
-        current.processedFiles = status.progress.processedFiles
-        current.copiedFiles = status.progress.copiedFiles
-        current.skipped = status.progress.skipped
+        const normalizedProgress = normalizeCopyProgress(status.progress)
+        current.totalFiles = normalizedProgress.totalFiles
+        current.processedFiles = normalizedProgress.processedFiles
+        current.copiedFiles = normalizedProgress.copiedFiles
+        current.skipped = normalizedProgress.skipped
+        current.totalBytes = normalizedProgress.totalBytes
+        current.processedBytes = normalizedProgress.processedBytes
+        current.currentFileBytes = normalizedProgress.currentFileBytes
+        current.currentFileTotalBytes = normalizedProgress.currentFileTotalBytes
         current.currentFile = status.progress.currentFile
 
         if (current.processedFiles > previousProcessedFiles) {
@@ -715,6 +793,18 @@ export function useFileManagerActions(panels: PanelsContext) {
         }
 
         if (status.status === 'completed') {
+          const completionTotal = Math.max(current.totalFiles, current.copiedFiles + current.skipped)
+          if (completionTotal > 0) {
+            current.totalFiles = completionTotal
+            current.processedFiles = completionTotal
+          }
+
+          const completionTotalBytes = Math.max(current.totalBytes, current.processedBytes)
+          if (completionTotalBytes > 0) {
+            current.totalBytes = completionTotalBytes
+            current.processedBytes = completionTotalBytes
+          }
+
           current.status = 'completed'
           current.error = ''
         } else if (status.status === 'canceled') {
@@ -1041,7 +1131,11 @@ export function useFileManagerActions(panels: PanelsContext) {
             processedFiles: 0,
             copiedFiles: 0,
             skipped: 0,
+            totalBytes: 0,
+            processedBytes: 0,
             currentFile: '',
+            currentFileBytes: 0,
+            currentFileTotalBytes: 0,
             error: '',
             minimized: false,
             toastId: null,

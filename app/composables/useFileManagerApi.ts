@@ -277,6 +277,10 @@ export function useFileManagerApi() {
         copiedFiles: number
         skipped: number
         currentFile: string
+        totalBytes?: number
+        processedBytes?: number
+        currentFileBytes?: number
+        currentFileTotalBytes?: number
       }
     }>('/api/fs/copy-status', {
       query: { jobId }

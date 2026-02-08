@@ -46,7 +46,11 @@ export function startCopyJob(input: StartCopyJobInput) {
       processedFiles: 0,
       copiedFiles: 0,
       skipped: 0,
-      currentFile: ''
+      totalBytes: 0,
+      processedBytes: 0,
+      currentFile: '',
+      currentFileBytes: 0,
+      currentFileTotalBytes: 0
     }
   }
 

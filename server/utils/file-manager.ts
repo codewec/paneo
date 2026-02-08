@@ -388,7 +388,11 @@ export interface CopyProgress {
   processedFiles: number
   copiedFiles: number
   skipped: number
+  totalBytes: number
+  processedBytes: number
   currentFile: string
+  currentFileBytes: number
+  currentFileTotalBytes: number
 }
 
 interface CopyState {
@@ -398,6 +402,10 @@ interface CopyState {
   copiedFiles: number
   copiedDirectories: number
   skipped: number
+  totalBytes: number
+  processedBytes: number
+  currentFileBytes: number
+  currentFileTotalBytes: number
   onProgress?: (progress: CopyProgress) => void
 }
 
@@ -423,20 +431,23 @@ async function statSafe(absPath: string) {
   }
 }
 
-async function countFilesRecursive(absPath: string): Promise<number> {
+async function countCopyTotalsRecursive(absPath: string): Promise<{ files: number, bytes: number }> {
   const entryStats = await stat(absPath)
   if (!entryStats.isDirectory()) {
-    return 1
+    return { files: 1, bytes: entryStats.size }
   }
 
   const entries = await readdir(absPath, { withFileTypes: true })
-  let total = 0
+  let files = 0
+  let bytes = 0
 
   for (const entry of entries) {
-    total += await countFilesRecursive(resolve(absPath, entry.name))
+    const totals = await countCopyTotalsRecursive(resolve(absPath, entry.name))
+    files += totals.files
+    bytes += totals.bytes
   }
 
-  return total
+  return { files, bytes }
 }
 
 function normalizeDisplayPath(baseAbsPath: string, absPath: string) {
@@ -450,19 +461,34 @@ function emitProgress(state: CopyState, absPath: string) {
     processedFiles: state.processedFiles,
     copiedFiles: state.copiedFiles,
     skipped: state.skipped,
-    currentFile: normalizeDisplayPath(state.sourceRootAbsPath, absPath)
+    totalBytes: state.totalBytes,
+    processedBytes: Math.max(0, Math.min(state.totalBytes, state.processedBytes)),
+    currentFile: normalizeDisplayPath(state.sourceRootAbsPath, absPath),
+    currentFileBytes: Math.max(0, Math.min(state.currentFileTotalBytes, state.currentFileBytes)),
+    currentFileTotalBytes: state.currentFileTotalBytes
   })
 }
 
-async function copyFileWithAbort(sourceAbsPath: string, destinationAbsPath: string, signal?: AbortSignal) {
+async function copyFileWithAbort(
+  sourceAbsPath: string,
+  destinationAbsPath: string,
+  signal?: AbortSignal,
+  onChunk?: (chunkBytes: number, copiedBytes: number) => void
+) {
   throwIfAborted(signal)
 
+  const readStream = createReadStream(sourceAbsPath)
+  const writeStream = createWriteStream(destinationAbsPath, { flags: 'w' })
+  let copiedBytes = 0
+
+  readStream.on('data', (chunk: Buffer | string) => {
+    const chunkBytes = typeof chunk === 'string' ? Buffer.byteLength(chunk) : chunk.byteLength
+    copiedBytes += chunkBytes
+    onChunk?.(chunkBytes, copiedBytes)
+  })
+
   try {
-    await pipeline(
-      createReadStream(sourceAbsPath),
-      createWriteStream(destinationAbsPath, { flags: 'w' }),
-      { signal }
-    )
+    await pipeline(readStream, writeStream, { signal })
   } catch (error: unknown) {
     await rm(destinationAbsPath, { force: true }).catch(() => undefined)
     if ((error as NodeJS.ErrnoException).code === 'ABORT_ERR' || signal?.aborted) {
@@ -488,11 +514,14 @@ async function copyEntryWithMerge(
     if (destinationStats) {
       if (!destinationStats.isDirectory()) {
         if (!overwriteExisting) {
-          const skippedFiles = await countFilesRecursive(sourceAbsPath)
-          state.skipped += skippedFiles
-          state.processedFiles += skippedFiles
+          const skippedTotals = await countCopyTotalsRecursive(sourceAbsPath)
+          state.skipped += skippedTotals.files
+          state.processedFiles += skippedTotals.files
+          state.processedBytes += skippedTotals.bytes
+          state.currentFileBytes = 0
+          state.currentFileTotalBytes = 0
           emitProgress(state, sourceAbsPath)
-          return { copiedFiles: 0, copiedDirectories: 0, skipped: skippedFiles }
+          return { copiedFiles: 0, copiedDirectories: 0, skipped: skippedTotals.files }
         }
         await rm(destinationAbsPath, { recursive: true, force: false })
         await mkdir(destinationAbsPath, { recursive: true })
@@ -526,11 +555,16 @@ async function copyEntryWithMerge(
     return total
   }
 
+  state.currentFileTotalBytes = sourceStats.size
+  state.currentFileBytes = 0
+
   if (destinationStats) {
     if (destinationStats.isDirectory()) {
       if (!overwriteExisting) {
         state.skipped += 1
         state.processedFiles += 1
+        state.processedBytes += sourceStats.size
+        state.currentFileBytes = sourceStats.size
         emitProgress(state, sourceAbsPath)
         return { copiedFiles: 0, copiedDirectories: 0, skipped: 1 }
       }
@@ -539,14 +573,25 @@ async function copyEntryWithMerge(
     } else if (!overwriteExisting) {
       state.skipped += 1
       state.processedFiles += 1
+      state.processedBytes += sourceStats.size
+      state.currentFileBytes = sourceStats.size
       emitProgress(state, sourceAbsPath)
       return { copiedFiles: 0, copiedDirectories: 0, skipped: 1 }
     }
   }
 
-  await copyFileWithAbort(sourceAbsPath, destinationAbsPath, signal)
+  emitProgress(state, sourceAbsPath)
+  const processedBytesBefore = state.processedBytes
+  await copyFileWithAbort(sourceAbsPath, destinationAbsPath, signal, (_chunkBytes, copiedBytes) => {
+    state.currentFileBytes = copiedBytes
+    state.processedBytes = processedBytesBefore + copiedBytes
+    emitProgress(state, sourceAbsPath)
+  })
+
   state.copiedFiles += 1
   state.processedFiles += 1
+  state.currentFileBytes = sourceStats.size
+  state.processedBytes = processedBytesBefore + sourceStats.size
   emitProgress(state, sourceAbsPath)
 
   return {
@@ -600,28 +645,39 @@ export async function copyPath(
     throw createError({ statusCode: 400, statusMessage: 'Source and destination are the same' })
   }
 
+  const copyTotals = sourceStats.isDirectory()
+    ? await countCopyTotalsRecursive(source.absPath)
+    : { files: 1, bytes: sourceStats.size }
+
   if (!sourceStats.isDirectory()) {
     const destinationExists = await pathExists(destination.absPath)
     if (destinationExists && !overwriteExisting) {
       onProgress?.({
-        totalFiles: 1,
-        processedFiles: 1,
+        totalFiles: copyTotals.files,
+        processedFiles: copyTotals.files,
         copiedFiles: 0,
         skipped: 1,
-        currentFile: basename(source.absPath)
+        totalBytes: copyTotals.bytes,
+        processedBytes: copyTotals.bytes,
+        currentFile: basename(source.absPath),
+        currentFileBytes: copyTotals.bytes,
+        currentFileTotalBytes: copyTotals.bytes
       })
       return { copiedFiles: 0, copiedDirectories: 0, skipped: 1 }
     }
   }
 
-  const totalFiles = sourceStats.isDirectory() ? await countFilesRecursive(source.absPath) : 1
   const state: CopyState = {
     sourceRootAbsPath: source.absPath,
-    totalFiles,
+    totalFiles: copyTotals.files,
     processedFiles: 0,
     copiedFiles: 0,
     copiedDirectories: 0,
     skipped: 0,
+    totalBytes: copyTotals.bytes,
+    processedBytes: 0,
+    currentFileBytes: 0,
+    currentFileTotalBytes: 0,
     onProgress
   }
 
@@ -630,7 +686,11 @@ export async function copyPath(
     processedFiles: 0,
     copiedFiles: 0,
     skipped: 0,
-    currentFile: ''
+    totalBytes: state.totalBytes,
+    processedBytes: 0,
+    currentFile: '',
+    currentFileBytes: 0,
+    currentFileTotalBytes: 0
   })
 
   const result = await copyEntryWithMerge(source.absPath, destination.absPath, overwriteExisting, state, signal)
@@ -639,7 +699,11 @@ export async function copyPath(
     processedFiles: state.processedFiles,
     copiedFiles: state.copiedFiles,
     skipped: state.skipped,
-    currentFile: ''
+    totalBytes: state.totalBytes,
+    processedBytes: state.processedBytes,
+    currentFile: '',
+    currentFileBytes: 0,
+    currentFileTotalBytes: 0
   })
   return result
 }
