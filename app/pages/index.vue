@@ -772,7 +772,7 @@ await initialize()
                 activePanelId === panel.id ? 'ring ring-primary-400' : '',
                 panelDragOver[panel.id] ? 'ring-2 ring-primary-500' : ''
               ]"
-              :ui="{ header: 'p-2', body: 'min-h-0 flex-1 overflow-hidden p-2', footer: 'p-2' }"
+              :ui="{ header: 'p-2', body: 'min-h-0 flex-1 overflow-hidden p-2 flex flex-col', footer: 'p-2' }"
               @click="selectPanel(panel)"
             >
               <template #header>
@@ -876,7 +876,7 @@ await initialize()
               <div
                 :ref="(el: Element | ComponentPublicInstance | null) => setPanelListRef(panel.id, el)"
                 :class="[
-                  'h-full space-y-1 overflow-auto -mr-2 pr-2',
+                  'min-h-0 flex-1 space-y-1 overflow-auto -mr-2 pr-2',
                   activePanelId !== panel.id ? 'opacity-65' : ''
                 ]"
               >
