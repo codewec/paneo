@@ -55,9 +55,13 @@ async function submit() {
         class="space-y-3"
         @submit.prevent="submit"
       >
-        <UFormField label="Password">
+        <UFormField
+          label="Password"
+          class="w-full"
+        >
           <UInput
             v-model="password"
+            class="w-full"
             type="password"
             autofocus
           />

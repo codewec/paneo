@@ -37,7 +37,7 @@ export default defineNuxtConfig({
 
   i18n: {
     strategy: 'no_prefix',
-    defaultLocale: 'ru',
+    defaultLocale: 'en',
     detectBrowserLanguage: false,
     locales: [
       { code: 'ru', name: 'Русский', language: 'ru-RU', file: 'ru.json' },

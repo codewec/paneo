@@ -25,7 +25,7 @@ useHead(() => ({
 }))
 
 useSeoMeta({
-  title: 'paneo',
+  title: 'Paneo - File Manager',
   description: t('app.description')
 })
 </script>

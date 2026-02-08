@@ -1,7 +1,24 @@
-# paneo
+<h1 align="center">Paneo</h1>
+<p align="center">
+    <i>
+      Paneo is a keyboard-first, two-pane file manager inspired by Midnight Commander and Total Commander.
+      Built with Nuxt 4 + Nuxt UI, it is designed to run in Docker with filesystem access restricted to configured roots.
+    </i>
+    <br/><br/>
+    <img width="130" alt="Paneo" src="https://raw.githubusercontent.com/codewec/paneo/main/static/favicon.svg"/>
+    <br/> <br/>
+    <img src="https://img.shields.io/github/v/release/codewec/paneo?logo=hackthebox&color=609966&logoColor=fff" alt="Current Version"/>
+    <img src="https://img.shields.io/github/last-commit/codewec/paneo?logo=github&color=609966&logoColor=fff" alt="Last commit"/>
+    <a href="https://github.com/codewec/paneo/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-609966?logo=opensourceinitiative&logoColor=fff" alt="License MIT"/></a>
+    <br/><br/>
+    <img src="https://raw.githubusercontent.com/codewec/paneo/.github/screenshots/paneo1.png" alt="Paneo" width="100%"/><br/>
+    <img src="https://raw.githubusercontent.com/codewec/paneo/.github/screenshots/paneo2.png" alt="Paneo" width="20%"/><br/>
+    <img src="https://raw.githubusercontent.com/codewec/paneo/.github/screenshots/paneo3.png" alt="Paneo" width="20%"/><br/>
+    <img src="https://raw.githubusercontent.com/codewec/paneo/.github/screenshots/paneo4.png" alt="Paneo" width="20%"/><br/>
+    <img src="https://raw.githubusercontent.com/codewec/paneo/.github/screenshots/paneo5.png" alt="Paneo" width="20%"/><br/>
+    <img src="https://raw.githubusercontent.com/codewec/paneo/.github/screenshots/paneo6.png" alt="Paneo" width="20%"/><br/>
+</p>
 
-paneo is a keyboard-first, two-pane file manager inspired by Midnight Commander and Total Commander.
-Built with Nuxt 4 + Nuxt UI, it is designed to run in Docker with filesystem access restricted to configured roots.
 
 ## Features
 

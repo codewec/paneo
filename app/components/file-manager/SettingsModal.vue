@@ -75,10 +75,13 @@ const modelLanguage = computed({
         </div>
       </div>
     </template>
-    <template #footer>
+    <template
+      v-if="canLogout"
+      #footer
+    >
       <div class="flex w-full justify-end">
         <UButton
-          v-if="canLogout"
+
           color="neutral"
           variant="outline"
           icon="i-lucide-log-out"
