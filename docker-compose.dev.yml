@@ -11,12 +11,6 @@ services:
       - "3000:3000"
     env_file:
       - .env
-    environment:
-      NODE_ENV: development
-      NUXT_HOST: 0.0.0.0
-      NUXT_PORT: 3000
-      CHOKIDAR_USEPOLLING: "true"
-      NUXT_FILE_MANAGER_ROOTS: "${FILE_MANAGER_ROOTS}"
     volumes:
       - ./:/app
       - /app/node_modules

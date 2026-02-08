@@ -23,7 +23,7 @@
 ## Features
 
 - Two fully independent panels
-- Optional password auth (enabled when `PANEO_AUTH_PASSWORD` is set)
+- Optional password auth (enabled when `NUXT_PANEO_AUTH_PASSWORD` is set)
 - Configurable source roots from environment variables
 - File/folder operations: create, rename, copy, move, delete
 - Multi-select support (keyboard + mouse)
@@ -50,7 +50,7 @@ Minimal example:
 UID=1000
 GID=1000
 HOST_DOCS=/home/user/Documents
-FILE_MANAGER_ROOTS="docs=/data/source-1"
+NUXT_FILE_MANAGER_ROOTS="docs=/data/source-1"
 
 # Persist paneo internal data (favorites, service state)
 PANEO_DATA_DIR=./paneo-data
@@ -66,10 +66,10 @@ UID=1000
 GID=1000
 HOST_DOCS=/home/user/Documents
 HOST_MEDIA=/mnt/storage
-FILE_MANAGER_ROOTS="docs=/data/source-1;media=/data/source-2"
-PANEO_AUTH_PASSWORD=
-PANEO_AUTH_SECRET=
-PANEO_AUTH_COOKIE_SECURE=false
+NUXT_FILE_MANAGER_ROOTS="docs=/data/source-1;media=/data/source-2"
+NUXT_PANEO_AUTH_PASSWORD=
+NUXT_PANEO_AUTH_SECRET=
+NUXT_PANEO_AUTH_COOKIE_SECURE=false
 PANEO_DATA_DIR=./paneo-data
 ```
 
@@ -88,11 +88,6 @@ services:
       - "3000:3000"
     env_file:
       - .env
-    environment:
-      NODE_ENV: production
-      NITRO_PORT: 3000
-      NITRO_HOST: 0.0.0.0
-      NUXT_FILE_MANAGER_ROOTS: "${FILE_MANAGER_ROOTS}"
     volumes:
       - ${HOST_DOCS}:/data/source-1
       - ${PANEO_DATA_DIR}:/app/.paneo
@@ -111,14 +106,6 @@ services:
       - "3000:3000"
     env_file:
       - .env
-    environment:
-      NODE_ENV: production
-      NITRO_PORT: 3000
-      NITRO_HOST: 0.0.0.0
-      NUXT_FILE_MANAGER_ROOTS: "${FILE_MANAGER_ROOTS}"
-      PANEO_AUTH_PASSWORD: "${PANEO_AUTH_PASSWORD}"
-      PANEO_AUTH_SECRET: "${PANEO_AUTH_SECRET}"
-      PANEO_AUTH_COOKIE_SECURE: "${PANEO_AUTH_COOKIE_SECURE}"
     volumes:
       - ${HOST_DOCS}:/data/source-1
       - ${HOST_MEDIA}:/data/source-2
@@ -131,6 +118,7 @@ You can use other source variable names. The important part is consistency betwe
 - `docker-compose.yml`
 
 For example, if you use `HOST_DOCS` in `.env`, use `${HOST_DOCS}` in `volumes`.
+All runtime variables are read from `.env` through `env_file` (no `environment` section required).
 
 Persistent data mount:
 
@@ -189,14 +177,14 @@ docker compose -f docker-compose.dev.yml down
 
 ## Configuration
 
-### Root Sources (`FILE_MANAGER_ROOTS`)
+### Root Sources (`NUXT_FILE_MANAGER_ROOTS`)
 
 The app only works inside explicitly allowed roots from this variable.
 
 Example:
 
 ```bash
-FILE_MANAGER_ROOTS="docs=/data/source-1;storage=/data/source-2;/tmp"
+NUXT_FILE_MANAGER_ROOTS="docs=/data/source-1;storage=/data/source-2;/tmp"
 ```
 
 Supported formats:
@@ -214,10 +202,11 @@ Common `.env` variables:
 - `UID`
 - `GID`
 - host source variables (any names, at least one)
-- `FILE_MANAGER_ROOTS`
-- `PANEO_AUTH_PASSWORD` (optional)
-- `PANEO_AUTH_SECRET` (optional, recommended)
-- `PANEO_AUTH_COOKIE_SECURE` (optional, default: `false`)
+- `NUXT_FILE_MANAGER_ROOTS`
+- `NUXT_PANEO_AUTH_PASSWORD` (optional)
+- `NUXT_PANEO_AUTH_SECRET` (optional, recommended)
+- `NUXT_PANEO_AUTH_COOKIE_SECURE` (optional, default: `false`)
+- `NITRO_HOST` and `NITRO_PORT` (optional; defaults are usually enough)
 - `PANEO_DATA_DIR` (recommended)
 
 Simple meaning:
@@ -227,13 +216,14 @@ Simple meaning:
 - You can use any variable names, but they must match in both:
   - `.env`
   - `docker-compose.yml` volume definitions
-- `FILE_MANAGER_ROOTS` tells paneo what to show in the root list.
-- In `FILE_MANAGER_ROOTS` you must use container paths (`/data/source-*`), not host paths.
-- `PANEO_AUTH_PASSWORD` enables authentication. Leave empty to disable auth.
-- `PANEO_AUTH_SECRET` signs auth session cookies. If not set, a fallback secret is derived from password.
-- `PANEO_AUTH_COOKIE_SECURE` controls the `secure` flag for auth cookie:
+- `NUXT_FILE_MANAGER_ROOTS` tells paneo what to show in the root list.
+- In `NUXT_FILE_MANAGER_ROOTS` you must use container paths (`/data/source-*`), not host paths.
+- `NUXT_PANEO_AUTH_PASSWORD` enables authentication. Leave empty to disable auth.
+- `NUXT_PANEO_AUTH_SECRET` signs auth session cookies. If not set, a fallback secret is derived from password.
+- `NUXT_PANEO_AUTH_COOKIE_SECURE` controls the `secure` flag for auth cookie:
   - use `true` only when app is served over HTTPS
   - keep `false` for HTTP (including local/dev HTTP)
+- `NITRO_HOST` and `NITRO_PORT` are optional runtime overrides.
 - `PANEO_DATA_DIR` is a host folder mounted into `/app/.paneo` to persist paneo internal data.
 - Favorites file path is fixed internally as `/app/.paneo/favorites.json`.
 
@@ -241,8 +231,8 @@ Important:
 
 1. At least one source folder must be mounted.
 2. Source variable names can be arbitrary, but must be consistent between `.env` and `docker-compose.yml`.
-3. Mounted container paths must be listed in `FILE_MANAGER_ROOTS`.
-4. `PANEO_AUTH_COOKIE_SECURE=true` should be used only for HTTPS.
+3. Mounted container paths must be listed in `NUXT_FILE_MANAGER_ROOTS`.
+4. `NUXT_PANEO_AUTH_COOKIE_SECURE=true` should be used only for HTTPS.
 5. For persistent favorites, mount `PANEO_DATA_DIR` to `/app/.paneo`.
 
 If these paths do not match, source navigation or persistence will fail.

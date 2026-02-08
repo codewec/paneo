@@ -17,14 +17,14 @@ It runs as a Nuxt 4 app and is intended to be deployed in Docker, with filesyste
 - Frontend and backend are in the same Nuxt project.
 - Backend exposes `/api/fs/*` endpoints.
 - Filesystem operations are allowed only inside configured roots.
-- Roots are configured via `FILE_MANAGER_ROOTS`.
-- Optional auth is enabled only when `PANEO_AUTH_PASSWORD` is set.
+- Roots are configured via `NUXT_FILE_MANAGER_ROOTS`.
+- Optional auth is enabled only when `NUXT_PANEO_AUTH_PASSWORD` is set.
 
 ## Root Configuration
 
 Environment variable format:
 
-- `FILE_MANAGER_ROOTS="alias1=/path1;alias2=/path2;/path3"`
+- `NUXT_FILE_MANAGER_ROOTS="alias1=/path1;alias2=/path2;/path3"`
 
 Parsing rules:
 
@@ -104,7 +104,7 @@ Parsing rules:
 - favorites are validated on server; missing/inaccessible entries are dropped.
 
 6. Auth
-- if `PANEO_AUTH_PASSWORD` is empty, app opens directly.
+- if `NUXT_PANEO_AUTH_PASSWORD` is empty, app opens directly.
 - if it is set, unauthenticated users are SSR-redirected to `/auth`.
 - after successful login user is redirected back to `/`.
 - logout is available from Settings modal.

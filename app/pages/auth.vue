@@ -3,7 +3,7 @@ const route = useRoute()
 const password = ref('')
 const isSubmitting = ref(false)
 const errorMessage = ref('')
-const { login } = usePaneoAuth()
+const { requiresPassword, initialize, login } = usePaneoAuth()
 
 const redirectPath = computed(() => {
   const raw = route.query.redirect
@@ -39,6 +39,12 @@ async function submit() {
   } finally {
     isSubmitting.value = false
   }
+}
+
+await initialize()
+
+if (!requiresPassword.value) {
+  await navigateTo(redirectPath.value, { replace: true })
 }
 </script>
 

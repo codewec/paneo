@@ -13,7 +13,7 @@ const panels = useFileManagerPanels()
 const api = useFileManagerApi()
 const { t, locale, setLocale } = useI18n()
 const colorMode = useColorMode()
-const { requiresPassword, logout } = usePaneoAuth()
+const { requiresPassword, isUnlocked, initialize: initializeAuth, logout } = usePaneoAuth()
 const localeCookie = useCookie<string | null>(LOCALE_COOKIE_KEY, {
   secure: false,
   sameSite: 'lax',
@@ -837,9 +837,14 @@ watch(locale, (value) => {
   localeCookie.value = value
 })
 
-await initialize()
-if (!hasStartupFatalErrors.value) {
-  await refreshFavorites()
+await initializeAuth()
+if (requiresPassword.value && !isUnlocked.value) {
+  await navigateTo('/auth', { replace: true })
+} else {
+  await initialize()
+  if (!hasStartupFatalErrors.value) {
+    await refreshFavorites()
+  }
 }
 </script>
 

@@ -8,11 +8,6 @@ services:
       - "3000:3000"
     env_file:
       - .env
-    environment:
-      NODE_ENV: production
-      NITRO_PORT: 3000
-      NITRO_HOST: 0.0.0.0
-      NUXT_FILE_MANAGER_ROOTS: "${FILE_MANAGER_ROOTS}"
     volumes:
       - ${PANEO_SOURCE_1}:/data/source-1
       - ${PANEO_SOURCE_2}:/data/source-2

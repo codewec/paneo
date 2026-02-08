@@ -23,7 +23,12 @@ function getSecret(event: H3Event) {
 
 function getCookieSecure(event: H3Event) {
   const config = useRuntimeConfig(event)
-  return Boolean(config.paneoAuthCookieSecure)
+  const value = config.paneoAuthCookieSecure
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').toLowerCase())
 }
 
 function signPayload(payload: string, secret: string) {
