@@ -435,11 +435,13 @@ export function useFileManagerActions(panels: PanelsContext) {
 
   function upsertMinimizedTaskToast(task: CopyTask) {
     const percent = taskPercent(task)
-    const descriptionText = task.currentFile
-      ? `${percent}% · ${task.currentFile}`
-      : `${percent}%`
     const description = h('div', { class: 'space-y-2' }, [
-      h('p', { class: 'text-xs text-muted' }, descriptionText),
+      h('p', { class: 'text-xs text-muted flex items-center gap-1' }, [
+        h('span', { class: 'shrink-0' }, String(percent) + ' ·'),
+        task.currentFile
+          ? h('span', { class: 'font-mono grow min-w-0 paneo-tail-ellipsis', title: task.currentFile }, task.currentFile)
+          : null
+      ]),
       h(UProgress, {
         modelValue: percent,
         size: 'xs',
@@ -497,11 +499,13 @@ export function useFileManagerActions(panels: PanelsContext) {
 
   function upsertMinimizedUploadTaskToast(task: UploadTask) {
     const percent = uploadTaskPercent(task)
-    const descriptionText = task.currentFile
-      ? `${percent}% · ${task.currentFile}`
-      : `${percent}%`
     const description = h('div', { class: 'space-y-2' }, [
-      h('p', { class: 'text-xs text-muted' }, descriptionText),
+      h('p', { class: 'text-xs text-muted flex items-center gap-1' }, [
+        h('span', { class: 'shrink-0' }, String(percent) + ' ·'),
+        task.currentFile
+          ? h('span', { class: 'font-mono grow min-w-0 paneo-tail-ellipsis', title: task.currentFile }, task.currentFile)
+          : null
+      ]),
       h(UProgress, {
         modelValue: percent,
         size: 'xs',

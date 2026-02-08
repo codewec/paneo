@@ -16,3 +16,13 @@
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
 }
+
+.paneo-tail-ellipsis {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+}

@@ -1046,7 +1046,16 @@ await initialize()
 
           <UProgress :model-value="activeUploadProgressPercent" />
           <div class="text-xs text-muted space-y-1">
-            <p>{{ activeUploadTask.currentFile || t('upload.preparing') }}</p>
+            <p
+              v-if="activeUploadTask.currentFile"
+              class="font-mono paneo-tail-ellipsis"
+              :title="activeUploadTask.currentFile"
+            >
+              {{ activeUploadTask.currentFile }}
+            </p>
+            <p v-else>
+              {{ t('upload.preparing') }}
+            </p>
           </div>
         </div>
       </template>
@@ -1195,7 +1204,16 @@ await initialize()
 
           <UProgress :model-value="activeCopyProgressPercent" />
           <div class="text-xs text-muted space-y-1">
-            <p>{{ activeCopyTask.currentFile || t('copy.preparing') }}</p>
+            <p
+              v-if="activeCopyTask.currentFile"
+              class="font-mono paneo-tail-ellipsis"
+              :title="activeCopyTask.currentFile"
+            >
+              {{ activeCopyTask.currentFile }}
+            </p>
+            <p v-else>
+              {{ t('copy.preparing') }}
+            </p>
           </div>
         </div>
       </template>
