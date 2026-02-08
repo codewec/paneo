@@ -54,7 +54,6 @@ function setPanelListRef(panelId: 'left' | 'right', el: Element | ComponentPubli
 }
 
 const {
-  rootsLoading,
   globalError,
   activePanelId,
   leftPanel,
@@ -818,9 +817,10 @@ await initialize()
               </div>
 
               <template #footer>
-                <div class="text-xs text-muted flex items-center justify-between">
-                  <span>{{ formatItemsCount(visibleEntryCount(panel)) }}</span>
-                  <span>{{ selectedMtime(panel) ? formatDate(selectedMtime(panel)) : '' }}</span>
+                <div class="text-xs text-muted grid grid-cols-3 items-center">
+                  <span class="text-left">{{ formatItemsCount(visibleEntryCount(panel)) }}</span>
+                  <span class="text-center">{{ panel.loading ? t('loading') : '' }}</span>
+                  <span class="text-right">{{ selectedMtime(panel) ? formatDate(selectedMtime(panel)) : '' }}</span>
                 </div>
               </template>
             </UCard>
@@ -1342,17 +1342,5 @@ await initialize()
         </div>
       </template>
     </UModal>
-
-    <div
-      v-if="rootsLoading || leftPanel.loading || rightPanel.loading"
-      class="fixed right-4 top-4"
-    >
-      <UBadge
-        color="neutral"
-        variant="soft"
-      >
-        {{ t('loading') }}
-      </UBadge>
-    </div>
   </div>
 </template>
