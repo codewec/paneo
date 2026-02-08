@@ -130,6 +130,9 @@ function onPathWheel(panelId: 'left' | 'right', event: WheelEvent) {
 
 const {
   globalError,
+  startupFatalErrors,
+  startupWarnings,
+  documentationUrl,
   activePanelId,
   leftPanel,
   rightPanel,
@@ -162,6 +165,8 @@ const {
   openSelectedEntry,
   switchActivePanel
 } = panels
+
+const hasStartupFatalErrors = computed(() => startupFatalErrors.value.length > 0)
 
 const {
   viewerOpen,
@@ -1004,7 +1009,9 @@ watch(locale, (value) => {
 })
 
 await initialize()
-await refreshFavorites()
+if (!hasStartupFatalErrors.value) {
+  await refreshFavorites()
+}
 </script>
 
 <template>
@@ -1017,7 +1024,40 @@ await refreshFavorites()
         :title="globalError"
       />
 
-      <div class="min-h-0 flex-1">
+      <UAlert
+        v-for="(message, index) in startupFatalErrors"
+        :key="`startup-fatal-${index}`"
+        color="error"
+        variant="subtle"
+        :title="message"
+      />
+
+      <UAlert
+        v-for="(message, index) in startupWarnings"
+        :key="`startup-warning-${index}`"
+        color="warning"
+        variant="subtle"
+        :title="message"
+      />
+
+      <p
+        v-if="startupFatalErrors.length || startupWarnings.length"
+        class="text-xs text-muted"
+      >
+        Подробности и рекомендации по настройке доступны в документации:
+        <ULink
+          :to="documentationUrl"
+          target="_blank"
+          class="ml-1 text-primary underline"
+        >
+          GitHub
+        </ULink>
+      </p>
+
+      <div
+        v-if="!hasStartupFatalErrors"
+        class="min-h-0 flex-1"
+      >
         <div class="grid h-full gap-2 lg:grid-cols-2">
           <div
             v-for="panel in [leftPanel, rightPanel]"
@@ -1253,7 +1293,10 @@ await refreshFavorites()
         </div>
       </div>
 
-      <UCard :ui="{ body: 'p-2' }">
+      <UCard
+        v-if="!hasStartupFatalErrors"
+        :ui="{ body: 'p-2' }"
+      >
         <ClientOnly>
           <div class="grid grid-cols-2 gap-2 md:grid-cols-10">
             <UButton

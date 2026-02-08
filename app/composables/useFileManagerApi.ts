@@ -67,6 +67,14 @@ export function useFileManagerApi() {
   async function fetchRoots() {
     return await $fetch<{ roots: RootItem[] }>('/api/fs/roots')
   }
+
+  async function fetchStartupStatus() {
+    return await $fetch<{
+      fatalErrors: string[]
+      warnings: string[]
+      documentationUrl: string
+    }>('/api/system/startup')
+  }
   async function fetchFavorites() {
     return await $fetch<{ items: FavoriteFolder[] }>('/api/fs/favorites')
   }
@@ -346,6 +354,7 @@ export function useFileManagerApi() {
   }
 
   return {
+    fetchStartupStatus,
     fetchRoots,
     fetchFavorites,
     addFavorite,

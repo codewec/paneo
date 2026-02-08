@@ -53,6 +53,9 @@ export function useFileManagerPanels() {
   const roots = ref<RootItem[]>([])
   const rootsLoading = ref(false)
   const globalError = ref('')
+  const startupFatalErrors = ref<string[]>([])
+  const startupWarnings = ref<string[]>([])
+  const documentationUrl = ref('https://github.com/codewec/paneo')
 
   const activePanelId = ref<'left' | 'right'>('left')
   const leftPanel = createPanel('left')
@@ -508,7 +511,29 @@ export function useFileManagerPanels() {
   }
 
   async function initialize() {
+    startupFatalErrors.value = []
+    startupWarnings.value = []
+
+    try {
+      const startupStatus = await api.fetchStartupStatus()
+      startupFatalErrors.value = startupStatus.fatalErrors
+      startupWarnings.value = startupStatus.warnings
+      documentationUrl.value = startupStatus.documentationUrl || documentationUrl.value
+    } catch (error) {
+      startupFatalErrors.value = [getErrorMessage(error)]
+      return
+    }
+
+    if (startupFatalErrors.value.length) {
+      return
+    }
+
     await loadRoots()
+    if (globalError.value) {
+      startupFatalErrors.value = [globalError.value]
+      globalError.value = ''
+      return
+    }
 
     const knownRootIds = new Set(roots.value.map(root => root.id))
     const stored = readStoredPanelsState()
@@ -762,6 +787,9 @@ export function useFileManagerPanels() {
     roots,
     rootsLoading,
     globalError,
+    startupFatalErrors,
+    startupWarnings,
+    documentationUrl,
     activePanelId,
     leftPanel,
     rightPanel,
