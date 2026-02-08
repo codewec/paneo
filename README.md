@@ -36,7 +36,7 @@ PANEO_SOURCE_2=/mnt/storage
 FILE_MANAGER_ROOTS="docs=/data/source-1;storage=/data/source-2"
 
 # Persist paneo internal data (favorites, service state)
-PANEO_DATA_DIR=/home/user/.local/share/paneo
+PANEO_DATA_DIR=./paneo-data
 ```
 
 `PANEO_SOURCE_1` and `PANEO_SOURCE_2` are required (no default fallback paths).
@@ -51,7 +51,7 @@ services:
     volumes:
       - ${PANEO_SOURCE_1}:/data/source-1
       - ${PANEO_SOURCE_2}:/data/source-2
-      - ${PANEO_DATA_DIR}:/var/lib/paneo
+      - ${PANEO_DATA_DIR}:/app/.paneo
 ```
 
 This mount is recommended so favorites and paneo internal data are not lost when the container is recreated.
@@ -140,14 +140,14 @@ Simple meaning:
   - `/data/source-2`
 - `FILE_MANAGER_ROOTS` tells paneo what to show in the root list.
 - In `FILE_MANAGER_ROOTS` you must use container paths (`/data/source-1`, `/data/source-2`), not host paths.
-- `PANEO_DATA_DIR` is a host folder mounted into `/var/lib/paneo` to persist paneo internal data.
-- Favorites file path is fixed internally as `/var/lib/paneo/favorites.json`.
+- `PANEO_DATA_DIR` is a host folder mounted into `/app/.paneo` to persist paneo internal data.
+- Favorites file path is fixed internally as `/app/.paneo/favorites.json`.
 
 Important:
 
 1. A source folder must be mounted (`PANEO_SOURCE_1` / `PANEO_SOURCE_2`).
 2. The same mounted path must be listed in `FILE_MANAGER_ROOTS`.
-3. For persistent favorites, mount `PANEO_DATA_DIR` to `/var/lib/paneo`.
+3. For persistent favorites, mount `PANEO_DATA_DIR` to `/app/.paneo`.
 
 If these paths do not match, source navigation or persistence will fail.
 

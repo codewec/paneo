@@ -1,5 +1,5 @@
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { createError } from 'h3'
 import { resolveWithinRoot } from '~~/server/utils/file-manager'
 
@@ -20,7 +20,7 @@ function toKey(item: FavoriteFolder) {
   return `${item.rootId}:${item.path}`
 }
 
-const FAVORITES_STORAGE_FILE = '/var/lib/paneo/favorites.json'
+const FAVORITES_STORAGE_FILE = resolve(process.cwd(), '.paneo', 'favorites.json')
 
 async function readPayload() {
   const storagePath = FAVORITES_STORAGE_FILE

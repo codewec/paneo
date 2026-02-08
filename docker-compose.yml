@@ -16,3 +16,4 @@ services:
     volumes:
       - ${PANEO_SOURCE_1}:/data/source-1
       - ${PANEO_SOURCE_2}:/data/source-2
+      - ${PANEO_DATA_DIR}:/app/.paneo

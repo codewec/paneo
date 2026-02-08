@@ -21,6 +21,7 @@ services:
       - ./:/app
       - /app/node_modules
       - /app/.nuxt
+      - ${PANEO_DATA_DIR}:/app/.paneo
       - ${PANEO_SOURCE_1}:/data/source-1
       - ${PANEO_SOURCE_2}:/data/source-2
     command: pnpm dev --host 0.0.0.0 --port 3000

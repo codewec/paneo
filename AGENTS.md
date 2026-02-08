@@ -33,8 +33,8 @@ Parsing rules:
 
 ## Data Persistence
 
-- Favorites are stored server-side in `/var/lib/paneo/favorites.json` (internal constant path).
-- For Docker persistence, mount a host volume to `/var/lib/paneo` (configure via `PANEO_DATA_DIR` in Compose).
+- Favorites are stored server-side in `/app/.paneo/favorites.json` (internal constant path).
+- For Docker persistence, mount a host volume to `/app/.paneo` (configure via `PANEO_DATA_DIR` in Compose).
 
 ## Key Directories
 
